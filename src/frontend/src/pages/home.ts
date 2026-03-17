@@ -459,15 +459,15 @@ export async function renderHomePage(): Promise<void> {
         <div style="max-width:1200px;margin:0 auto">
           <!-- Location row (reactive) -->
           <div id="home-footer-location" style="margin-bottom:8px">${footerLocHTML}</div>
-          <!-- Copyright + links -->
-          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px">
-            <span style="font-size:13px;color:#5f6368">${t("copyright")}</span>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 0">
+          <!-- Copyright + links (centred) -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0">
               <a href="#/terms" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("terms")}</a>
               <a href="#/privacy" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("privacyPolicy")}</a>
               <a href="#/cookies" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("cookies")}</a>
               <a href="#/support" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px">${t("support")}</a>
             </div>
+            <span style="font-size:13px;color:#5f6368">${t("copyright")}</span>
           </div>
         </div>
       </footer>

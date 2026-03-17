@@ -79,3 +79,96 @@ button {
   background: oklch(var(--muted-foreground));
   border-radius: 3px;
 }
+
+/* =========================================
+   FOOTER LAYOUT
+   ========================================= */
+.page-footer {
+  background: #f2f2f2;
+  border-top: 1px solid #e0e0e0;
+  margin-top: auto;
+  width: 100%;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  padding: 20px 10px;
+  min-height: 140px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-text {
+  font-size: 16px;
+  color: #444;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+  margin: 8px 0 0;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: #5f6368;
+  text-decoration: none;
+  padding: 0 8px;
+  border-right: 1px solid #ccc;
+}
+
+.footer-links a:last-child {
+  border-right: none;
+}
+
+.footer-links a:hover {
+  color: #1a73e8;
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  color: #777;
+  margin-top: 10px;
+}
+
+.footer-bottom p {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 16px 12px;
+    min-height: 120px;
+  }
+
+  .location-text {
+    font-size: 14px;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    padding: 0 6px;
+  }
+
+  .footer-bottom {
+    font-size: 13px;
+  }
+}
