@@ -1,0 +1,196 @@
+import { Principal } from "@dfinity/principal";
+import { ListingStatus } from "../backend";
+import type { Category, Listing } from "../backend";
+
+export const SAMPLE_CATEGORIES: Category[] = [
+  {
+    id: 1n,
+    icon: "🍽️",
+    name: "Restaurants",
+    description: "Dine-in, takeaway & delivery",
+  },
+  {
+    id: 2n,
+    icon: "🏥",
+    name: "Doctors & Clinics",
+    description: "Healthcare professionals",
+  },
+  {
+    id: 3n,
+    icon: "💈",
+    name: "Salons & Spas",
+    description: "Beauty & wellness",
+  },
+  {
+    id: 4n,
+    icon: "🔧",
+    name: "Plumbers",
+    description: "Plumbing repairs & installation",
+  },
+  {
+    id: 5n,
+    icon: "⚡",
+    name: "Electricians",
+    description: "Electrical services",
+  },
+  {
+    id: 6n,
+    icon: "🏋️",
+    name: "Gyms & Fitness",
+    description: "Stay fit & healthy",
+  },
+  {
+    id: 7n,
+    icon: "📚",
+    name: "Tutors & Coaching",
+    description: "Education & training",
+  },
+  {
+    id: 8n,
+    icon: "🚗",
+    name: "Auto & Garages",
+    description: "Vehicle servicing & repair",
+  },
+  {
+    id: 9n,
+    icon: "🏨",
+    name: "Hotels",
+    description: "Accommodation & lodging",
+  },
+  {
+    id: 10n,
+    icon: "🛒",
+    name: "Grocery Stores",
+    description: "Fresh produce & daily needs",
+  },
+  {
+    id: 11n,
+    icon: "💊",
+    name: "Pharmacies",
+    description: "Medicines & health products",
+  },
+  {
+    id: 12n,
+    icon: "🐾",
+    name: "Pet Services",
+    description: "Vet, grooming & boarding",
+  },
+];
+
+const dummyPrincipal = Principal.anonymous();
+
+export const SAMPLE_LISTINGS: Listing[] = [
+  {
+    id: 101n,
+    name: "Spice Garden Restaurant",
+    categoryId: 1n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Mumbai",
+    state: "Maharashtra",
+    address: "42, Linking Road, Bandra West",
+    phone: "+91 98201 45678",
+    website: "https://spicegarden.in",
+    description:
+      "Authentic North Indian cuisine with a modern twist. Known for our signature butter chicken and freshly baked naan breads in a cozy family-friendly atmosphere.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 19.0596, lng: 72.8295 },
+  },
+  {
+    id: 102n,
+    name: "Dr. Priya Sharma Clinic",
+    categoryId: 2n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Delhi",
+    state: "Delhi",
+    address: "15, Connaught Place, Block A",
+    phone: "+91 99100 23456",
+    website: "",
+    description:
+      "General physician with 15+ years of experience. Specializing in family medicine, preventive care, and chronic disease management. Open 9 AM–7 PM.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 28.6315, lng: 77.2167 },
+  },
+  {
+    id: 103n,
+    name: "Glam Studio Salon",
+    categoryId: 3n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Bangalore",
+    state: "Karnataka",
+    address: "Shop 7, Indiranagar 100 Feet Road",
+    phone: "+91 80456 78901",
+    website: "https://glamstudio.co.in",
+    description:
+      "Premium unisex salon offering haircuts, coloring, facials, and bridal makeovers. Trained stylists with international certification. Walk-ins welcome.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 12.9784, lng: 77.6408 },
+  },
+  {
+    id: 104n,
+    name: "QuickFix Plumbing Services",
+    categoryId: 4n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Chennai",
+    state: "Tamil Nadu",
+    address: "23, Anna Nagar West Extension",
+    phone: "+91 94440 56789",
+    website: "",
+    description:
+      "24/7 emergency plumbing services including pipe repair, drain cleaning, water heater installation, and bathroom fittings. Licensed and insured plumbers.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 13.085, lng: 80.2101 },
+  },
+  {
+    id: 105n,
+    name: "PowerPro Electricals",
+    categoryId: 5n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Hyderabad",
+    state: "Telangana",
+    address: "Plot 45, Jubilee Hills Road No. 36",
+    phone: "+91 91560 34567",
+    website: "https://powerpro.in",
+    description:
+      "Certified electricians for residential and commercial work. Services include wiring, switchboard repair, inverter installation, and solar panel setup.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 17.431, lng: 78.4069 },
+  },
+  {
+    id: 106n,
+    name: "FitLife Gym & Wellness",
+    categoryId: 6n,
+    status: ListingStatus.approved,
+    owner: dummyPrincipal,
+    city: "Mumbai",
+    state: "Maharashtra",
+    address: "3rd Floor, Andheri Sports Complex, Andheri East",
+    phone: "+91 98700 12345",
+    website: "https://fitlifegym.in",
+    description:
+      "State-of-the-art gym with cardio zone, free weights, group classes (yoga, Zumba, crossfit), personal trainers, and spa facilities. Open 5 AM–11 PM.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 19.1136, lng: 72.8697 },
+  },
+];
+
+export const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  Mumbai: { lat: 19.076, lng: 72.8777 },
+  Delhi: { lat: 28.6139, lng: 77.209 },
+  Bangalore: { lat: 12.9716, lng: 77.5946 },
+  Chennai: { lat: 13.0827, lng: 80.2707 },
+  Hyderabad: { lat: 17.385, lng: 78.4867 },
+  Kolkata: { lat: 22.5726, lng: 88.3639 },
+  Pune: { lat: 18.5204, lng: 73.8567 },
+  Ahmedabad: { lat: 23.0225, lng: 72.5714 },
+};
