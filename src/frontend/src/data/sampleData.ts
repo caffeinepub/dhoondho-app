@@ -1,6 +1,30 @@
-import { Principal } from "@dfinity/principal";
-import { ListingStatus } from "../backend";
-import type { Category, Listing } from "../backend";
+export interface Location {
+  lat: number;
+  lng: number;
+}
+
+export interface Category {
+  id: bigint;
+  icon: string;
+  name: string;
+  description: string;
+}
+
+export interface Listing {
+  id: bigint;
+  name: string;
+  categoryId: bigint;
+  status: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  website: string;
+  description: string;
+  photoIds: string[];
+  createdTime: bigint;
+  location: Location;
+}
 
 export const SAMPLE_CATEGORIES: Category[] = [
   {
@@ -77,15 +101,12 @@ export const SAMPLE_CATEGORIES: Category[] = [
   },
 ];
 
-const dummyPrincipal = Principal.anonymous();
-
 export const SAMPLE_LISTINGS: Listing[] = [
   {
     id: 101n,
     name: "Spice Garden Restaurant",
     categoryId: 1n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Mumbai",
     state: "Maharashtra",
     address: "42, Linking Road, Bandra West",
@@ -101,8 +122,7 @@ export const SAMPLE_LISTINGS: Listing[] = [
     id: 102n,
     name: "Dr. Priya Sharma Clinic",
     categoryId: 2n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Delhi",
     state: "Delhi",
     address: "15, Connaught Place, Block A",
@@ -118,8 +138,7 @@ export const SAMPLE_LISTINGS: Listing[] = [
     id: 103n,
     name: "Glam Studio Salon",
     categoryId: 3n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Bangalore",
     state: "Karnataka",
     address: "Shop 7, Indiranagar 100 Feet Road",
@@ -135,8 +154,7 @@ export const SAMPLE_LISTINGS: Listing[] = [
     id: 104n,
     name: "QuickFix Plumbing Services",
     categoryId: 4n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Chennai",
     state: "Tamil Nadu",
     address: "23, Anna Nagar West Extension",
@@ -152,8 +170,7 @@ export const SAMPLE_LISTINGS: Listing[] = [
     id: 105n,
     name: "PowerPro Electricals",
     categoryId: 5n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Hyderabad",
     state: "Telangana",
     address: "Plot 45, Jubilee Hills Road No. 36",
@@ -169,8 +186,7 @@ export const SAMPLE_LISTINGS: Listing[] = [
     id: 106n,
     name: "FitLife Gym & Wellness",
     categoryId: 6n,
-    status: ListingStatus.approved,
-    owner: dummyPrincipal,
+    status: "approved",
     city: "Mumbai",
     state: "Maharashtra",
     address: "3rd Floor, Andheri Sports Complex, Andheri East",
@@ -181,6 +197,38 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 19.1136, lng: 72.8697 },
+  },
+  {
+    id: 107n,
+    name: "Bright Minds Coaching Centre",
+    categoryId: 7n,
+    status: "approved",
+    city: "Pune",
+    state: "Maharashtra",
+    address: "FC Road, Shivajinagar, Pune",
+    phone: "+91 92000 11234",
+    website: "https://brightminds.in",
+    description:
+      "Expert coaching for IIT-JEE, NEET, and board exams. Small batch sizes, experienced faculty, and proven results with 90%+ selection rate.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 18.5204, lng: 73.8567 },
+  },
+  {
+    id: 108n,
+    name: "AutoCare Service Centre",
+    categoryId: 8n,
+    status: "approved",
+    city: "Ahmedabad",
+    state: "Gujarat",
+    address: "Ring Road, Satellite Area, Ahmedabad",
+    phone: "+91 79500 99876",
+    website: "",
+    description:
+      "Multi-brand car service centre with trained technicians. Oil change, brake repair, AC service, denting & painting, and general maintenance.",
+    photoIds: [],
+    createdTime: BigInt(Date.now() * 1000000),
+    location: { lat: 23.0225, lng: 72.5714 },
   },
 ];
 

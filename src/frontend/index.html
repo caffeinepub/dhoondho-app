@@ -1,11 +1,19 @@
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title></title>
+    <title>Dhoondho.App - Find Local Businesses in India</title>
+    <meta name="description" content="Search for local businesses, services, and professionals across India. Find restaurants, doctors, salons, plumbers, electricians, and more." />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="bg-background text-foreground">
+    <div id="app">
+      <div id="navbar-container"></div>
+      <main id="main-content"></main>
+      <div id="footer-container"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
