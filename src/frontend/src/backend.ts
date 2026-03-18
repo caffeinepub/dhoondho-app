@@ -183,6 +183,7 @@ export interface backendInterface {
     adminUpdateListing(listingId: bigint, input: ListingInput): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     changeListingStatus(listingId: bigint, newStatus: ListingStatus): Promise<void>;
+    claimFirstAdminRole(): Promise<boolean>;
     deleteCategory(categoryId: bigint): Promise<void>;
     deleteListing(listingId: bigint): Promise<void>;
     deletePendingListingsRange(startId: bigint, endId: bigint): Promise<void>;
@@ -382,6 +383,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.changeListingStatus(arg0, to_candid_ListingStatus_n10(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async claimFirstAdminRole(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.claimFirstAdminRole();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.claimFirstAdminRole();
             return result;
         }
     }

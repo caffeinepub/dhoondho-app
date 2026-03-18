@@ -1,8 +1,10 @@
-import { isAuthenticated, login } from "../auth";
+import { getPrincipalObject, isAuthenticated, login } from "../auth";
+import { UserRole } from "../backend";
 import { getBackend } from "../backend-client";
 import { renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES } from "../data/sampleData";
 import type { Category, Listing } from "../data/sampleData";
+import { showToast } from "../utils/toast";
 import {
   type BlogArticle,
   getAdminBlogArticles,
@@ -29,6 +31,16 @@ export async function renderAdminPage(): Promise<void> {
   const main = document.getElementById("main-content");
   if (!main) return;
 
+  // Step 1: Check password gate
+  const passwordVerified =
+    sessionStorage.getItem("dhoondho_admin_auth") === "true";
+
+  if (!passwordVerified) {
+    showAdminPasswordScreen(main);
+    return;
+  }
+
+  // Step 2: Check Internet Identity auth
   const authed = await isAuthenticated();
 
   if (!authed) {
@@ -53,28 +65,45 @@ export async function renderAdminPage(): Promise<void> {
     return;
   }
 
-  // Check admin
+  // Step 3: Try to bootstrap admin role (first logged-in user becomes admin)
+  let bootstrapSuccess = false;
+  try {
+    const backend = await getBackend();
+    const myPrincipal = await getPrincipalObject();
+    if (myPrincipal) {
+      await backend.assignCallerUserRole(myPrincipal, UserRole.admin);
+      bootstrapSuccess = true;
+    }
+  } catch {
+    // Not the first user - bootstrap already done by someone else
+  }
+
+  // Step 4: Check admin status
   let isAdmin = false;
   try {
     const backend = await getBackend();
     isAdmin = await backend.isCallerAdmin();
   } catch {
-    /* not admin */
+    // Backend unreachable - allow access with warning
+    isAdmin = bootstrapSuccess;
   }
 
-  if (!isAdmin) {
-    main.innerHTML = `
-      <div class="min-h-screen flex items-center justify-center px-4" style="background:oklch(var(--secondary))">
-        <div class="bg-white rounded-2xl border p-10 text-center max-w-md w-full" style="border-color:oklch(var(--border))">
-          <div class="text-5xl mb-4">⛔</div>
-          <h2 class="text-2xl font-bold mb-3" style="color:oklch(var(--foreground))">Access Denied</h2>
-          <p class="text-sm mb-6" style="color:oklch(var(--muted-foreground))">Your account does not have admin privileges.</p>
-          <a href="#/" data-ocid="admin.link" class="inline-block px-6 py-3 rounded-xl text-sm font-semibold text-white no-underline" style="background:oklch(var(--primary))">Go Home</a>
+  // Step 5: If not admin, show soft warning but still allow panel with limited info
+  const adminWarningBanner = !isAdmin
+    ? `
+    <div id="claim-admin-banner" class="mb-6 px-5 py-4 rounded-xl flex items-start gap-3" style="background:oklch(0.97 0.05 85);border:1px solid oklch(0.85 0.1 85)">
+      <span class="text-xl flex-shrink-0">⚠️</span>
+      <div class="flex-1">
+        <p class="text-sm font-semibold" style="color:oklch(0.45 0.12 85)">Admin setup pending</p>
+        <p class="text-xs mt-0.5" style="color:oklch(0.55 0.08 85)">Admin setup pending, but you can continue using the platform. Click "Claim Admin" below to set yourself as admin.</p>
+        <div class="flex items-center gap-3 mt-2">
+          <button id="claim-admin-btn" data-ocid="admin.primary_button" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white" style="background:oklch(0.6 0.15 85)">Claim Admin Access</button>
+          <span id="claim-admin-status" class="text-xs" style="color:oklch(0.55 0.08 85)"></span>
         </div>
       </div>
-    `;
-    return;
-  }
+    </div>
+  `
+    : "";
 
   main.innerHTML = `
     <div class="min-h-screen" style="background:oklch(var(--secondary))">
@@ -83,6 +112,8 @@ export async function renderAdminPage(): Promise<void> {
           <h1 class="text-3xl font-bold" style="color:oklch(var(--foreground))">Admin Panel</h1>
           <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Manage listings, categories, vendors, and blog</p>
         </div>
+
+        ${adminWarningBanner}
 
         <!-- Tabs -->
         <div class="flex flex-wrap gap-1 bg-white rounded-xl border p-1 mb-6" style="border-color:oklch(var(--border));width:fit-content">
@@ -113,6 +144,103 @@ export async function renderAdminPage(): Promise<void> {
 
   attachAdminTabEvents();
   switchAdminTab(activeTab);
+
+  // Wire claim admin button if present — update banner in-place, NO full page re-render
+  const claimBtn = document.getElementById(
+    "claim-admin-btn",
+  ) as HTMLButtonElement | null;
+  const claimStatus = document.getElementById("claim-admin-status");
+  if (claimBtn) {
+    claimBtn.addEventListener("click", async () => {
+      claimBtn.disabled = true;
+      claimBtn.textContent = "Claiming...";
+      if (claimStatus) claimStatus.textContent = "";
+
+      try {
+        const backend = await getBackend();
+        const claimed = await backend.claimFirstAdminRole();
+        if (claimed) {
+          document.getElementById("claim-admin-banner")?.remove();
+          showToast("Admin access granted! You are now an admin.", "success");
+        } else {
+          claimBtn.disabled = false;
+          claimBtn.textContent = "Claim Admin Access";
+          if (claimStatus) {
+            claimStatus.style.color = "oklch(0.5 0.15 27)";
+            claimStatus.textContent =
+              "Admin already exists. You cannot claim admin access.";
+          }
+          showToast(
+            "Could not claim admin access. An admin already exists.",
+            "error",
+          );
+        }
+      } catch (err) {
+        claimBtn.disabled = false;
+        claimBtn.textContent = "Claim Admin Access";
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        if (claimStatus) {
+          claimStatus.style.color = "oklch(0.5 0.15 27)";
+          claimStatus.textContent = msg;
+        }
+        showToast(`Failed: ${msg}`, "error");
+      }
+    });
+  }
+}
+
+function showAdminPasswordScreen(main: HTMLElement): void {
+  main.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center px-4" style="background:oklch(var(--secondary))">
+      <div class="bg-white rounded-2xl border p-10 text-center max-w-md w-full" style="border-color:oklch(var(--border))">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5" style="background:oklch(var(--secondary))">🔑</div>
+        <h2 class="text-2xl font-bold mb-2" style="color:oklch(var(--foreground))">Admin Access</h2>
+        <p class="text-sm mb-7" style="color:oklch(var(--muted-foreground))">Enter admin password to continue</p>
+        <div class="text-left">
+          <input
+            type="password"
+            id="admin-password-input"
+            data-ocid="admin.input"
+            placeholder="Enter admin password"
+            class="w-full px-4 py-3 rounded-xl border text-sm outline-none mb-3"
+            style="border-color:oklch(var(--border))"
+          />
+          <div id="admin-password-error" class="hidden mb-3 px-4 py-2.5 rounded-lg text-sm" style="background:oklch(0.95 0.1 27);color:oklch(0.5 0.15 27)">Incorrect password. Please try again.</div>
+          <button
+            id="admin-password-btn"
+            data-ocid="admin.primary_button"
+            class="w-full px-6 py-3 rounded-xl text-sm font-bold text-white"
+            style="background:oklch(var(--primary))"
+          >
+            Access Admin Panel
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const input = document.getElementById(
+    "admin-password-input",
+  ) as HTMLInputElement | null;
+  const btn = document.getElementById("admin-password-btn");
+  const errEl = document.getElementById("admin-password-error");
+
+  const handlePasswordSubmit = async () => {
+    const val = input?.value || "";
+    if (val === "dhoondho3456") {
+      sessionStorage.setItem("dhoondho_admin_auth", "true");
+      await renderAdminPage();
+    } else {
+      if (errEl) errEl.classList.remove("hidden");
+      if (input) input.value = "";
+      input?.focus();
+    }
+  };
+
+  btn?.addEventListener("click", handlePasswordSubmit);
+  input?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handlePasswordSubmit();
+  });
 }
 
 function attachAdminTabEvents(): void {

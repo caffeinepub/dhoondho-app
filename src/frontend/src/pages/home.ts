@@ -65,13 +65,15 @@ function escapeHtml(str: string): string {
 }
 
 const DHOONDHO_LOGO = `
-  <span class="logo-letter" style="color:#EA4335">D</span><span
-  class="logo-letter" style="color:#4285F4">h</span><span
-  class="logo-letter" style="color:#FBBC05">u</span><span
-  class="logo-letter" style="color:#4285F4">n</span><span
-  class="logo-letter" style="color:#34A853">d</span><span
-  class="logo-letter" style="color:#EA4335">h</span><span
-  class="logo-letter" style="color:#FBBC05">o</span>
+  <span class="logo-letter" style="color:#EA4335;text-shadow:0 2px 8px rgba(234,67,53,0.35)">D</span><span
+  class="logo-letter" style="color:#4285F4;text-shadow:0 2px 8px rgba(66,133,244,0.35)">h</span><span
+  class="logo-letter" style="color:#FBBC05;text-shadow:0 2px 8px rgba(251,188,5,0.35)">o</span><span
+  class="logo-letter" style="color:#34A853;text-shadow:0 2px 8px rgba(52,168,83,0.35)">o</span><span
+  class="logo-letter" style="color:#EA4335;text-shadow:0 2px 8px rgba(234,67,53,0.35)">n</span><span
+  class="logo-letter" style="color:#4285F4;text-shadow:0 2px 8px rgba(66,133,244,0.35)">d</span><span
+  class="logo-letter" style="color:#FBBC05;text-shadow:0 2px 8px rgba(251,188,5,0.35)">h</span><span
+  class="logo-letter" style="color:#34A853;text-shadow:0 2px 8px rgba(52,168,83,0.35)">o</span>
+  <svg xmlns="http://www.w3.org/2000/svg" class="logo-pin" width="36" height="36" viewBox="0 0 24 24" fill="#EA4335" style="filter:drop-shadow(0 2px 4px rgba(234,67,53,0.5));margin-left:4px;margin-bottom:4px;vertical-align:bottom"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>
 `;
 
 // ---------------------------------------------------------------------------
@@ -261,7 +263,7 @@ export async function renderHomePage(): Promise<void> {
   main.innerHTML = `
     <style>
       @keyframes spin { to { transform: rotate(360deg); } }
-      .logo-letter { font-size: clamp(48px, 12vw, 90px); font-weight: 700; letter-spacing: -2px; font-family: 'Google Sans', Arial, sans-serif; }
+      .logo-letter { font-size: clamp(44px, 11vw, 82px); font-weight: 900; letter-spacing: -3px; font-family: 'Google Sans', 'Poppins', Arial, sans-serif; display:inline-block; transition: transform 0.2s; } .logo-letter:hover { transform: scale(1.15) translateY(-2px); } .logo-pin { display:inline-block; }
       .dhoondho-search-box:hover { box-shadow: 0 2px 8px rgba(32,33,36,0.2) !important; }
       .dhoondho-search-box:focus-within { box-shadow: 0 2px 8px rgba(32,33,36,0.2) !important; border-color: transparent !important; }
       .cat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: pointer; }
@@ -315,6 +317,7 @@ export async function renderHomePage(): Promise<void> {
                 </div>
                 <a href="#/vendor" class="avatar-dropdown-item">${t("myAccount")}</a>
                 <a href="#/vendor" class="avatar-dropdown-item">${t("myListings")}</a>
+                <a href="#/dashboard" class="avatar-dropdown-item">📊 My Dashboard</a>
                 <div style="height:1px;background:#f0f0f0;margin:4px 0"></div>
                 <a href="#" id="dropdown-logout" class="avatar-dropdown-item" style="color:#d32f2f">${t("signOut")}</a>
               `
@@ -431,6 +434,21 @@ function attachHomeEvents(_authed: boolean): void {
   function doSearch(): void {
     const q = input?.value.trim();
     if (q) {
+      // Save to search history
+      try {
+        const raw = localStorage.getItem("dhoondho_search_history");
+        const hist: Array<{ query: string; time: number }> = raw
+          ? JSON.parse(raw)
+          : [];
+        const filtered = hist.filter((h) => h.query !== q);
+        filtered.unshift({ query: q, time: Date.now() });
+        localStorage.setItem(
+          "dhoondho_search_history",
+          JSON.stringify(filtered.slice(0, 10)),
+        );
+      } catch {
+        /* ignore */
+      }
       window.location.hash = `#/search?q=${encodeURIComponent(q)}`;
     } else {
       window.location.hash = "#/search";
@@ -534,6 +552,37 @@ function attachHomeEvents(_authed: boolean): void {
     }
   });
 
+  input?.addEventListener("focus", () => {
+    const val = input.value.trim();
+    if (!val && autocomplete) {
+      // Show recent searches
+      try {
+        const raw = localStorage.getItem("dhoondho_search_history");
+        const hist: Array<{ query: string; time: number }> = raw
+          ? JSON.parse(raw)
+          : [];
+        if (hist.length > 0) {
+          autocomplete.style.display = "block";
+          autocomplete.innerHTML = hist
+            .slice(0, 5)
+            .map(
+              (h) =>
+                `<div class="ac-item" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;color:#202124"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${h.query}</div>`,
+            )
+            .join("");
+          for (const item of autocomplete.querySelectorAll(".ac-item")) {
+            item.addEventListener("mousedown", () => {
+              input.value = (item as HTMLElement).innerText.trim();
+              autocomplete.style.display = "none";
+              doSearch();
+            });
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  });
   input?.addEventListener("blur", () => {
     setTimeout(() => {
       if (autocomplete) autocomplete.style.display = "none";

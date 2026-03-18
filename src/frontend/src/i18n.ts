@@ -21,7 +21,7 @@ type LangCode = (typeof SUPPORTED_LANGUAGES)[number];
 // Translations are loaded from /lang/<code>.json at runtime
 // We keep English inline as the guaranteed fallback
 const EN_TRANSLATIONS: TranslationMap = {
-  search: "Dhundho Search",
+  search: "Dhoondho Search",
   map: "Explore on Map",
   nearby: "Nearby Now",
   searchPlaceholder: "Search services, businesses in India",

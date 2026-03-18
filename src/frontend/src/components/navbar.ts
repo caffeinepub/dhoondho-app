@@ -23,7 +23,7 @@ async function getNavbarHTML(): Promise<string> {
         <div class="flex items-center justify-between h-14">
           <!-- Logo -->
           <a href="#/" class="flex items-center gap-1 text-lg font-bold no-underline">
-            <span style="color:#EA4335">D</span><span style="color:#4285F4">h</span><span style="color:#FBBC05">u</span><span style="color:#4285F4">n</span><span style="color:#34A853">d</span><span style="color:#EA4335">h</span><span style="color:#FBBC05">o</span><span style="color:#5f6368;font-size:13px;font-weight:400">.App</span>
+            <span style="color:#EA4335">D</span><span style="color:#4285F4">h</span><span style="color:#FBBC05">o</span><span style="color:#34A853">o</span><span style="color:#EA4335">n</span><span style="color:#4285F4">d</span><span style="color:#FBBC05">h</span><span style="color:#34A853">o</span><span style="color:#5f6368;font-size:13px;font-weight:400">.App</span>
           </a>
 
           <!-- Desktop Nav -->

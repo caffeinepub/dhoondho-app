@@ -37,6 +37,16 @@ module {
     };
   };
 
+  // Bootstrap: allows first logged-in user to claim admin when no admin exists yet.
+  // Returns true if admin was successfully claimed, false if admin already exists.
+  public func bootstrapFirstAdmin(state : AccessControlState, caller : Principal) : Bool {
+    if (caller.isAnonymous()) { return false };
+    if (state.adminAssigned) { return false };
+    state.userRoles.add(caller, #admin);
+    state.adminAssigned := true;
+    true
+  };
+
   public func getUserRole(state : AccessControlState, caller : Principal) : UserRole {
     if (caller.isAnonymous()) { return #guest };
     switch (state.userRoles.get(caller)) {

@@ -104,6 +104,7 @@ export interface _SERVICE {
   'adminUpdateListing' : ActorMethod<[bigint, ListingInput], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'changeListingStatus' : ActorMethod<[bigint, ListingStatus], undefined>,
+  'claimFirstAdminRole' : ActorMethod<[], boolean>,
   'deleteCategory' : ActorMethod<[bigint], undefined>,
   'deleteListing' : ActorMethod<[bigint], undefined>,
   'deletePendingListingsRange' : ActorMethod<[bigint, bigint], undefined>,

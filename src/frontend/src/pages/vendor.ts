@@ -1,8 +1,10 @@
-import { isAuthenticated, login } from "../auth";
+import { getPrincipalObject, isAuthenticated, login } from "../auth";
+import { UserRole } from "../backend";
 import { getBackend } from "../backend-client";
 import { renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES, SAMPLE_LISTINGS } from "../data/sampleData";
 import type { Listing } from "../data/sampleData";
+import { showToast } from "../utils/toast";
 
 const PROFILE_PHOTO_KEY = "dhoondho_profile_photo";
 
@@ -79,6 +81,17 @@ export async function renderVendorPage(): Promise<void> {
         await renderVendorPage();
       });
     return;
+  }
+
+  // AUTO-REGISTER AS USER (must be before any backend calls)
+  try {
+    const backend = await getBackend();
+    const myPrincipal = await getPrincipalObject();
+    if (myPrincipal) {
+      await backend.assignCallerUserRole(myPrincipal, UserRole.user);
+    }
+  } catch {
+    // Already registered or not allowed - that's fine
   }
 
   // Load profile from backend
@@ -218,6 +231,23 @@ export async function renderVendorPage(): Promise<void> {
                 <button type="button" id="cancel-form-btn" data-ocid="vendor.cancel_button" class="px-6 py-2.5 rounded-xl text-sm font-semibold border" style="border-color:oklch(var(--border));color:oklch(var(--foreground))">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <!-- Availability Toggle -->
+        <div class="bg-white rounded-2xl border mb-6 p-5" style="border-color:oklch(var(--border))">
+          <h2 class="font-bold mb-3" style="color:oklch(var(--foreground))">My Availability Status</h2>
+          <p class="text-sm mb-4" style="color:oklch(var(--muted-foreground))">Set your current availability so customers know if you're accepting work.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button id="avail-available" data-avail="available" data-ocid="vendor.toggle" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:20px;border:2px solid #e8e8e8;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.15s">
+              🟢 Available
+            </button>
+            <button id="avail-busy" data-avail="busy" data-ocid="vendor.toggle" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:20px;border:2px solid #e8e8e8;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.15s">
+              🟡 Busy
+            </button>
+            <button id="avail-offline" data-avail="offline" data-ocid="vendor.toggle" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:20px;border:2px solid #e8e8e8;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.15s">
+              ⚫ Offline
+            </button>
           </div>
         </div>
 
@@ -379,6 +409,47 @@ function attachVendorEvents(): void {
         }
       }
     });
+
+  // Availability toggle
+  const availMap: Record<string, { border: string; bg: string }> = {
+    available: { border: "#34A853", bg: "#e8f5e9" },
+    busy: { border: "#FBBC05", bg: "#fff8e1" },
+    offline: { border: "#9aa0a6", bg: "#f1f1f1" },
+  };
+  function updateAvailUI(current: string): void {
+    for (const btn of document.querySelectorAll<HTMLButtonElement>(
+      "[data-avail]",
+    )) {
+      const val = btn.dataset.avail || "";
+      if (val === current) {
+        btn.style.borderColor = availMap[val]?.border || "#dadce0";
+        btn.style.background = availMap[val]?.bg || "#fff";
+        btn.style.color = "#202124";
+      } else {
+        btn.style.borderColor = "#e8e8e8";
+        btn.style.background = "#fff";
+        btn.style.color = "#5f6368";
+      }
+    }
+  }
+  const savedAvail =
+    localStorage.getItem("dhoondho_vendor_availability") || "available";
+  updateAvailUI(savedAvail);
+  for (const btn of document.querySelectorAll<HTMLButtonElement>(
+    "[data-avail]",
+  )) {
+    btn.addEventListener("click", () => {
+      const val = btn.dataset.avail || "available";
+      localStorage.setItem("dhoondho_vendor_availability", val);
+      updateAvailUI(val);
+      const labels: Record<string, string> = {
+        available: "Status set to Available ✓",
+        busy: "Status set to Busy",
+        offline: "Status set to Offline",
+      };
+      showToast(labels[val] || "Status updated", "success");
+    });
+  }
 
   // Submit listing form
   document

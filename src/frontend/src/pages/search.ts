@@ -8,6 +8,7 @@ import {
   SAMPLE_LISTINGS,
 } from "../data/sampleData";
 import type { Category, Listing } from "../data/sampleData";
+import { showToast } from "../utils/toast";
 
 let mapInstance: any = null;
 let currentListings: Listing[] = [];
@@ -31,18 +32,60 @@ function getCategoryIcon(categoryId: bigint): string {
   return cat ? cat.icon : "🏢";
 }
 
+function getFavoriteIds(): string[] {
+  try {
+    const raw = localStorage.getItem("dhoondho_favorites");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function toggleFavorite(id: string): boolean {
+  const ids = getFavoriteIds();
+  const idx = ids.indexOf(id);
+  if (idx === -1) {
+    ids.push(id);
+    localStorage.setItem("dhoondho_favorites", JSON.stringify(ids));
+    return true;
+  }
+  ids.splice(idx, 1);
+  localStorage.setItem("dhoondho_favorites", JSON.stringify(ids));
+  return false;
+}
+
+function availabilityBadge(listing: Listing): string {
+  if (listing.availability === "available") {
+    return `<span style="background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap">✔ Available Now</span>`;
+  }
+  if (listing.availability === "busy") {
+    return `<span style="background:#fff8e1;color:#f57f17;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap">⏳ Busy</span>`;
+  }
+  return "";
+}
+
 function listingCard(listing: Listing, index: number): string {
+  const isFav = getFavoriteIds().includes(String(listing.id));
+  const featuredBadge = listing.featured
+    ? `<span style="background:linear-gradient(135deg,#FFF9C4,#FFE082);color:#795548;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;border:1px solid #FFD54F">⭐ Featured</span>`
+    : "";
   return `
-    <a href="#/listing/${listing.id}" data-ocid="search.item.${index + 1}" class="block bg-white rounded-xl border hover:shadow-md transition-shadow no-underline" style="border-color:oklch(var(--border))">
-      <div class="p-5">
-        <div class="flex items-start justify-between gap-3 mb-2">
+    <div data-ocid="search.item.${index + 1}" class="search-card bg-white rounded-xl border hover:shadow-md transition-shadow" style="border-color:oklch(var(--border));position:relative;${listing.featured ? "border-color:#FFD54F !important;box-shadow:0 2px 8px rgba(255,193,7,0.2)" : ""}">
+      <button class="heart-btn" data-id="${listing.id}" style="position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;font-size:20px;z-index:2;line-height:1;padding:2px 4px;border-radius:50%;transition:transform 0.15s" title="Save listing">
+        ${isFav ? "❤️" : "🤍"}
+      </button>
+      <a href="#/listing/${listing.id}" class="block no-underline p-5" style="padding-right:44px">
+        <div class="flex items-start gap-3 mb-2">
           <div class="flex-1 min-w-0">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+              ${featuredBadge}
+              ${availabilityBadge(listing)}
+            </div>
             <h3 class="font-semibold text-base truncate" style="color:oklch(var(--foreground))">${escapeHtml(listing.name)}</h3>
             <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mt-1" style="background:oklch(var(--secondary));color:oklch(var(--secondary-foreground))">
               ${getCategoryIcon(listing.categoryId)} ${escapeHtml(getCategoryName(listing.categoryId))}
             </span>
           </div>
-          <span class="text-2xl flex-shrink-0">${getCategoryIcon(listing.categoryId)}</span>
         </div>
         <p class="text-xs mb-2 flex items-center gap-1" style="color:oklch(var(--muted-foreground))">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -57,8 +100,8 @@ function listingCard(listing: Listing, index: number): string {
             : ""
         }
         <p class="text-sm mt-2 line-clamp-2" style="color:oklch(var(--muted-foreground))">${escapeHtml(listing.description)}</p>
-      </div>
-    </a>
+      </a>
+    </div>
   `;
 }
 
@@ -147,7 +190,28 @@ function renderListings(listings: Listing[], loading: boolean): void {
   const countEl = document.getElementById("results-count");
   if (countEl) countEl.textContent = `${listings.length} businesses found`;
 
-  listContainer.innerHTML = listings.map(listingCard).join("");
+  // Sort: featured first
+  const sorted = [...listings].sort(
+    (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0),
+  );
+  listContainer.innerHTML = sorted.map(listingCard).join("");
+
+  // Attach heart button handlers
+  for (const btn of listContainer.querySelectorAll<HTMLButtonElement>(
+    ".heart-btn",
+  )) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.dataset.id || "";
+      const saved = toggleFavorite(id);
+      btn.textContent = saved ? "❤️" : "🤍";
+      showToast(
+        saved ? "Saved to favourites!" : "Removed from saved",
+        saved ? "success" : "info",
+      );
+    });
+  }
 }
 
 export async function renderSearchPage(params: URLSearchParams): Promise<void> {
@@ -380,6 +444,24 @@ function attachSearchEvents(city: string, category: string): void {
   }
 }
 
+function saveSearchQuery(q: string): void {
+  if (!q) return;
+  try {
+    const raw = localStorage.getItem("dhoondho_search_history");
+    const hist: Array<{ query: string; time: number }> = raw
+      ? JSON.parse(raw)
+      : [];
+    const filtered = hist.filter((h) => h.query !== q);
+    filtered.unshift({ query: q, time: Date.now() });
+    localStorage.setItem(
+      "dhoondho_search_history",
+      JSON.stringify(filtered.slice(0, 10)),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 async function loadSearchResults(
   city: string,
   category: string,
@@ -387,6 +469,7 @@ async function loadSearchResults(
   lng?: number,
 ): Promise<void> {
   renderListings([], true);
+  if (city) saveSearchQuery(city);
 
   let listings: Listing[] = [];
 

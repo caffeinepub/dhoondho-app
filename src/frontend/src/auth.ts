@@ -1,4 +1,5 @@
 import { AuthClient } from "@dfinity/auth-client";
+import type { Principal } from "@icp-sdk/core/principal";
 import { loadConfig } from "./config";
 
 const ONE_HOUR_NS = BigInt(3_600_000_000_000);
@@ -61,4 +62,11 @@ export async function getPrincipal(): Promise<string | null> {
   if (!authenticated) return null;
   const client = await getAuthClient();
   return client.getIdentity().getPrincipal().toString();
+}
+
+export async function getPrincipalObject(): Promise<Principal | null> {
+  const authenticated = await isAuthenticated();
+  if (!authenticated) return null;
+  const client = await getAuthClient();
+  return client.getIdentity().getPrincipal() as unknown as Principal;
 }

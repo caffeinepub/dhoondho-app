@@ -24,6 +24,8 @@ export interface Listing {
   photoIds: string[];
   createdTime: bigint;
   location: Location;
+  availability?: "available" | "busy" | "offline";
+  featured?: boolean;
 }
 
 export const SAMPLE_CATEGORIES: Category[] = [
@@ -117,6 +119,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 19.0596, lng: 72.8295 },
+    availability: "available",
+    featured: true,
   },
   {
     id: 102n,
@@ -133,6 +137,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 28.6315, lng: 77.2167 },
+    availability: "busy",
+    featured: true,
   },
   {
     id: 103n,
@@ -149,6 +155,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 12.9784, lng: 77.6408 },
+    availability: "available",
+    featured: false,
   },
   {
     id: 104n,
@@ -165,6 +173,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 13.085, lng: 80.2101 },
+    availability: "available",
+    featured: false,
   },
   {
     id: 105n,
@@ -181,6 +191,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 17.431, lng: 78.4069 },
+    availability: "busy",
+    featured: false,
   },
   {
     id: 106n,
@@ -197,6 +209,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 19.1136, lng: 72.8697 },
+    availability: "available",
+    featured: true,
   },
   {
     id: 107n,
@@ -213,6 +227,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 18.5204, lng: 73.8567 },
+    availability: "offline",
+    featured: false,
   },
   {
     id: 108n,
@@ -229,6 +245,8 @@ export const SAMPLE_LISTINGS: Listing[] = [
     photoIds: [],
     createdTime: BigInt(Date.now() * 1000000),
     location: { lat: 23.0225, lng: 72.5714 },
+    availability: "available",
+    featured: false,
   },
 ];
 

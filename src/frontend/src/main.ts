@@ -5,6 +5,7 @@ import { renderAboutPage } from "./pages/about";
 import { renderAdminPage } from "./pages/admin";
 import { renderBlogPage } from "./pages/blog";
 import { renderCookiesPage } from "./pages/cookies";
+import { renderDashboardPage } from "./pages/dashboard";
 import { renderHomePage } from "./pages/home";
 import { cleanupListingPage, renderListingPage } from "./pages/listing";
 import { renderPrivacyPage } from "./pages/privacy";
@@ -75,6 +76,9 @@ async function route(): Promise<void> {
     renderCookiesPage();
   } else if (path === "/support") {
     renderSupportPage();
+  } else if (path === "/dashboard") {
+    renderDashboardPage();
+    initFooterReactivity();
   } else {
     showNavbar();
     const main = document.getElementById("main-content");

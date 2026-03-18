@@ -17,7 +17,7 @@ export function renderAboutPage(): void {
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:40px">
           <div style="font-size:52px;font-weight:700;letter-spacing:-2px;line-height:1">
-            <span style="color:#EA4335">D</span><span style="color:#4285F4">h</span><span style="color:#FBBC05">u</span><span style="color:#4285F4">n</span><span style="color:#34A853">d</span><span style="color:#EA4335">h</span><span style="color:#FBBC05">o</span>
+            <span style="color:#EA4335">D</span><span style="color:#4285F4">h</span><span style="color:#FBBC05">o</span><span style="color:#34A853">o</span><span style="color:#EA4335">n</span><span style="color:#4285F4">d</span><span style="color:#FBBC05">h</span><span style="color:#34A853">o</span>
           </div>
           <p style="font-size:16px;color:#5f6368;margin-top:6px">India's First Local Search Engine</p>
         </div>

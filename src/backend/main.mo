@@ -273,9 +273,15 @@ actor {
 
   // Vendor Listing Management
   public shared ({ caller }) func submitListing(input : ListingInput) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only vendors can submit listings");
+    // Allow user, vendor (user role), and admin roles; auto-register if needed
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to submit a listing");
     };
+    if (accessControlState.userRoles.get(caller) == null) {
+      accessControlState.userRoles.add(caller, #user);
+    };
+
+
 
     let newListing = {
       id = nextListingId;
