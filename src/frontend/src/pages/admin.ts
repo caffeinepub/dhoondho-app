@@ -1,5 +1,6 @@
 import { isAuthenticated, login } from "../auth";
 import { getBackend } from "../backend-client";
+import { renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES } from "../data/sampleData";
 import type { Category, Listing } from "../data/sampleData";
 import {
@@ -106,6 +107,7 @@ export async function renderAdminPage(): Promise<void> {
           </div>
         </div>
       </div>
+    ${renderPageFooter(main)}
     </div>
   `;
 

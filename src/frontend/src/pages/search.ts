@@ -1,6 +1,7 @@
 declare const L: any;
 
 import { getBackend } from "../backend-client";
+import { renderPageFooter } from "../components/footer";
 import {
   CITY_COORDINATES,
   SAMPLE_CATEGORIES,
@@ -253,6 +254,7 @@ export async function renderSearchPage(params: URLSearchParams): Promise<void> {
           <div id="map-container" style="height:600px;border-radius:12px;overflow:hidden;border:1px solid oklch(var(--border))"></div>
         </div>
       </div>
+    ${renderPageFooter(main)}
     </div>
   `;
 

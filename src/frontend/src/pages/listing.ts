@@ -1,6 +1,7 @@
 declare const L: any;
 
 import { getBackend } from "../backend-client";
+import { renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES, SAMPLE_LISTINGS } from "../data/sampleData";
 import type { Listing } from "../data/sampleData";
 
@@ -236,6 +237,7 @@ export async function renderListingPage(id: string): Promise<void> {
           </a>
         </div>
       </div>
+    ${renderPageFooter(main)}
     </div>
   `;
 

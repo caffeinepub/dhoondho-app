@@ -1,5 +1,5 @@
 import "./index.css";
-import { renderFooter } from "./components/footer";
+import { initFooterReactivity, renderFooter } from "./components/footer";
 import { renderNavbar, showNavbar } from "./components/navbar";
 import { renderAboutPage } from "./pages/about";
 import { renderAdminPage } from "./pages/admin";
@@ -52,13 +52,17 @@ async function route(): Promise<void> {
     await renderHomePage();
   } else if (path.startsWith("/search")) {
     await renderSearchPage(params);
+    initFooterReactivity();
   } else if (path.startsWith("/listing/")) {
     const id = path.replace("/listing/", "");
     await renderListingPage(id);
+    initFooterReactivity();
   } else if (path === "/vendor") {
     await renderVendorPage();
+    initFooterReactivity();
   } else if (path === "/admin") {
     await renderAdminPage();
+    initFooterReactivity();
   } else if (path === "/about") {
     renderAboutPage();
   } else if (path === "/blog") {

@@ -1,5 +1,6 @@
 import { isAuthenticated, login, logout } from "../auth";
 import { getBackend } from "../backend-client";
+import { initFooterReactivity, renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES } from "../data/sampleData";
 import { getCurrentLanguage, onLanguageChange, setLanguage, t } from "../i18n";
 import { getProfilePhoto } from "./vendor";
@@ -178,29 +179,7 @@ function updateLocationBanner(
   }
 
   // Update footer location row
-  updateFooterLocation();
-}
-
-function updateFooterLocation(): void {
-  const row = document.getElementById("home-footer-location");
-  if (!row) return;
-  const loc = loadCachedLocation();
-  if (loc?.city) {
-    const place = loc.state ? `${loc.city}, ${loc.state}` : loc.city;
-    row.innerHTML = `
-      <p style="font-size:13px;color:#5f6368;margin:0;display:flex;align-items:center;gap:6px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a7a3c" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-        <strong>${t("location_detected")}</strong>&nbsp;${escapeHtml(place)}
-      </p>
-    `;
-  } else {
-    row.innerHTML = `
-      <p style="font-size:13px;color:#9aa0a6;margin:0;display:flex;align-items:center;gap:6px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        ${t("enable_location")}
-      </p>
-    `;
-  }
+  initFooterReactivity();
 }
 
 async function autoDetectLocation(): Promise<void> {
@@ -208,7 +187,7 @@ async function autoDetectLocation(): Promise<void> {
   const cached = loadCachedLocation();
   if (cached) {
     userLocation = cached;
-    updateFooterLocation();
+    initFooterReactivity();
     return;
   }
 
@@ -278,18 +257,6 @@ export async function renderHomePage(): Promise<void> {
     : `<button id="home-login-btn" style="padding:6px 16px;border-radius:6px;border:1px solid #dadce0;background:#fff;font-size:13px;font-weight:600;color:#1a73e8;cursor:pointer">${t("signIn")}</button>`;
 
   const currentLang = getCurrentLanguage();
-
-  // Build footer location line
-  const cachedLoc = loadCachedLocation();
-  const footerLocHTML = cachedLoc?.city
-    ? `<p style="font-size:13px;color:#5f6368;margin:0;display:flex;align-items:center;gap:6px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a7a3c" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-        <strong>${t("location_detected")}</strong>&nbsp;${escapeHtml(cachedLoc.state ? `${cachedLoc.city}, ${cachedLoc.state}` : cachedLoc.city)}
-       </p>`
-    : `<p style="font-size:13px;color:#9aa0a6;margin:0;display:flex;align-items:center;gap:6px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        ${t("enable_location")}
-       </p>`;
 
   main.innerHTML = `
     <style>
@@ -439,38 +406,7 @@ export async function renderHomePage(): Promise<void> {
 
       </div>
 
-      <!-- Footer India section -->
-      <div style="background:#f2f2f2;padding:12px 24px;border-top:1px solid #e0e0e0">
-        <div style="max-width:640px;margin:0 auto;font-size:14px;color:#3c4043;font-weight:500">${t("india")}</div>
-      </div>
-
-      <!-- Footer links row -->
-      <div style="background:#f2f2f2;padding:14px 24px;border-top:1px solid #e8e8e8">
-        <div style="max-width:640px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px">
-          <a href="#/about" style="font-size:13px;color:#5f6368;text-decoration:none">${t("about")}</a>
-          <a href="#/vendor" style="font-size:13px;color:#5f6368;text-decoration:none">${t("forBusinesses")}</a>
-          <a href="#/blog" style="font-size:13px;color:#5f6368;text-decoration:none">${t("blog")}</a>
-          <a href="#/privacy" style="font-size:13px;color:#5f6368;text-decoration:none">${t("privacyTerms")}</a>
-        </div>
-      </div>
-
-      <!-- Bottom footer: location + copyright + legal links -->
-      <footer style="background:#f2f2f2;border-top:1px solid #e0e0e0;padding:14px 24px">
-        <div style="max-width:1200px;margin:0 auto">
-          <!-- Location row (reactive) -->
-          <div id="home-footer-location" style="margin-bottom:8px">${footerLocHTML}</div>
-          <!-- Copyright + links (centred) -->
-          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0">
-              <a href="#/terms" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("terms")}</a>
-              <a href="#/privacy" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("privacyPolicy")}</a>
-              <a href="#/cookies" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px;border-right:1px solid #ccc">${t("cookies")}</a>
-              <a href="#/support" style="font-size:13px;color:#5f6368;text-decoration:none;padding:0 8px">${t("support")}</a>
-            </div>
-            <span style="font-size:13px;color:#5f6368">${t("copyright")}</span>
-          </div>
-        </div>
-      </footer>
+    ${renderPageFooter(main)}
 
     </div>
   `;
