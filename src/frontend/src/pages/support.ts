@@ -6,8 +6,19 @@ export function renderSupportPage(): void {
   const main = document.getElementById("main-content");
   if (!main) return;
   main.innerHTML = `
+    <style>
+      .support-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+      @media (max-width: 600px) {
+        .support-form-grid { grid-template-columns: 1fr !important; }
+        .support-container { padding: 24px 16px !important; }
+        .support-quicklinks { grid-template-columns: 1fr 1fr !important; }
+      }
+      @media (max-width: 380px) {
+        .support-quicklinks { grid-template-columns: 1fr !important; }
+      }
+    </style>
     <div style="min-height:100vh;background:#fff;display:flex;flex-direction:column">
-      <div style="max-width:800px;margin:0 auto;padding:48px 24px;flex:1">
+      <div class="support-container" style="max-width:800px;margin:0 auto;padding:48px 24px;flex:1">
         <a href="#/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a73e8;text-decoration:none;margin-bottom:32px">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>Back to Home</a>
 
@@ -15,7 +26,7 @@ export function renderSupportPage(): void {
         <p style="font-size:15px;color:#5f6368;margin-bottom:40px">We're here to help. Find answers or get in touch with our team.</p>
 
         <!-- Quick links -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:48px">
+        <div class="support-quicklinks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:48px">
           ${[
             {
               icon: "🏢",
@@ -98,7 +109,7 @@ export function renderSupportPage(): void {
         <h2 style="font-size:22px;font-weight:700;color:#202124;margin-bottom:20px">Contact Us</h2>
         <div style="background:#f8f9fa;border-radius:16px;padding:28px">
           <form id="support-form">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div class="support-form-grid">
               <div>
                 <label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px">Name *</label>
                 <input type="text" required placeholder="Your name" style="width:100%;padding:10px 14px;border:1px solid #dadce0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box" />

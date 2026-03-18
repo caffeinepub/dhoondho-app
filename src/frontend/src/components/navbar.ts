@@ -30,6 +30,7 @@ async function getNavbarHTML(): Promise<string> {
           <div class="hidden md:flex items-center gap-5">
             <a href="#/about" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("about")}</a>
             <a href="#/blog" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("blog")}</a>
+            <a href="#/contributors" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">&#127942; Contributors</a>
             <a href="#/vendor" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("forBusinesses")}</a>
             <a href="#/admin" class="text-sm font-medium no-underline hover:opacity-70" style="color:#9aa0a6">${t("admin")}</a>
             ${authBtn}
@@ -49,16 +50,24 @@ async function getNavbarHTML(): Promise<string> {
           <a href="#/search" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("searchPage")}</a>
           <a href="#/about" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("about")}</a>
           <a href="#/blog" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("blog")}</a>
+          <a href="#/contributors" class="text-sm font-medium py-2 no-underline" style="color:#202124">&#127942; Contributors</a>
           <a href="#/vendor" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("forBusinesses")}</a>
           <a href="#/admin" class="text-sm font-medium py-2 no-underline" style="color:#9aa0a6">${t("admin")}</a>
           <div class="pt-2 border-t" style="border-color:#e8eaed">
             ${authBtn.replace('id="auth-btn"', 'id="auth-btn-mobile"')}
           </div>
-          <!-- Language switcher in mobile menu -->
+          <!-- Language switcher in mobile menu (all 10 Indian languages) -->
           <div class="pt-2 border-t flex flex-wrap gap-2" style="border-color:#e8eaed">
             <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "en" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="en">English</a>
             <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "hi" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="hi">हिन्दी</a>
             <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "mr" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="mr">मराठी</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "ta" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="ta">தமிழ்</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "te" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="te">తెలుగు</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "kn" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="kn">ಕನ್ನಡ</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "ml" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="ml">മലയാളം</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "pa" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="pa">ਪੰਜਾਬੀ</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "bn" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="bn">বাংলা</a>
+            <a class="text-xs cursor-pointer px-2 py-1 rounded ${currentLang === "gu" ? "nav-active-lang" : ""}" style="color:#1a73e8" data-nav-lang="gu">ગુજરાતી</a>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { renderNavbar, showNavbar } from "./components/navbar";
 import { renderAboutPage } from "./pages/about";
 import { renderAdminPage } from "./pages/admin";
 import { renderBlogPage } from "./pages/blog";
+import { renderContributorsPage } from "./pages/contributors";
 import { renderCookiesPage } from "./pages/cookies";
 import { renderDashboardPage } from "./pages/dashboard";
 import { renderHomePage } from "./pages/home";
@@ -13,6 +14,7 @@ import { cleanupSearchPage, renderSearchPage } from "./pages/search";
 import { renderSupportPage } from "./pages/support";
 import { renderTermsPage } from "./pages/terms";
 import { renderVendorPage } from "./pages/vendor";
+import { initPWA } from "./utils/pwa";
 
 // Fix BigInt serialization
 (BigInt.prototype as any).toJSON = function () {
@@ -79,6 +81,13 @@ async function route(): Promise<void> {
   } else if (path === "/dashboard") {
     renderDashboardPage();
     initFooterReactivity();
+  } else if (path === "/contributors") {
+    renderContributorsPage();
+    initFooterReactivity();
+  } else if (path.startsWith("/seo/")) {
+    const { renderSEOPage } = await import("./pages/seo");
+    renderSEOPage(path);
+    initFooterReactivity();
   } else {
     showNavbar();
     const main = document.getElementById("main-content");
@@ -97,14 +106,19 @@ async function route(): Promise<void> {
   }
 }
 
+let _initialized = false;
+
 async function init(): Promise<void> {
+  if (_initialized) return;
+  _initialized = true;
+  initPWA();
   await renderNavbar();
   renderFooter();
   await route();
 }
 
 window.addEventListener("hashchange", () => {
-  route();
+  void route();
 });
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -1,9 +1,21 @@
 import { getPrincipalObject, isAuthenticated, login } from "../auth";
 import { UserRole } from "../backend";
-import { getBackend } from "../backend-client";
+import {
+  debugAuth,
+  getAuthenticatedBackend,
+  getBackend,
+  resetBackend,
+} from "../backend-client";
 import { renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES, SAMPLE_LISTINGS } from "../data/sampleData";
 import type { Listing } from "../data/sampleData";
+import {
+  friendlyError,
+  isCanisterDownError,
+  logApiFailure,
+  queueListing,
+  startRetryLoop,
+} from "../utils/canister-error-handler";
 import { showToast } from "../utils/toast";
 
 const PROFILE_PHOTO_KEY = "dhoondho_profile_photo";
@@ -78,6 +90,8 @@ export async function renderVendorPage(): Promise<void> {
       .getElementById("vendor-signin-btn")
       ?.addEventListener("click", async () => {
         await login();
+        resetBackend();
+        await debugAuth();
         await renderVendorPage();
       });
     return;
@@ -118,9 +132,18 @@ export async function renderVendorPage(): Promise<void> {
 
   // Logged in view
   main.innerHTML = `
+    <style>
+      .vendor-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:12px; }
+      @media (max-width: 480px) {
+        .vendor-page-header { flex-direction: column; align-items: flex-start; }
+        .vendor-page-header button { width: 100%; text-align: center; }
+        .vendor-availability-row { gap: 8px !important; }
+        .vendor-availability-row button { flex: 1; justify-content: center; font-size: 13px !important; padding: 8px 12px !important; }
+      }
+    </style>
     <div class="min-h-screen" style="background:oklch(var(--secondary))">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div class="flex items-center justify-between mb-8">
+        <div class="vendor-page-header">
           <div>
             <h1 class="text-3xl font-bold" style="color:oklch(var(--foreground))">Vendor Portal</h1>
             <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Manage your business listings</p>
@@ -238,7 +261,7 @@ export async function renderVendorPage(): Promise<void> {
         <div class="bg-white rounded-2xl border mb-6 p-5" style="border-color:oklch(var(--border))">
           <h2 class="font-bold mb-3" style="color:oklch(var(--foreground))">My Availability Status</h2>
           <p class="text-sm mb-4" style="color:oklch(var(--muted-foreground))">Set your current availability so customers know if you're accepting work.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="vendor-availability-row" style="display:flex;gap:10px;flex-wrap:wrap">
             <button id="avail-available" data-avail="available" data-ocid="vendor.toggle" style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:20px;border:2px solid #e8e8e8;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.15s">
               🟢 Available
             </button>
@@ -469,10 +492,19 @@ function attachVendorEvents(): void {
       }
 
       try {
-        const backend = await getBackend();
+        const backend = await getAuthenticatedBackend();
+        const catVal = data.get("category") as string;
+        if (!catVal || catVal === "0") {
+          showToast("Please select a category", "error");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Submit Listing";
+          }
+          return;
+        }
         await backend.submitListing({
           name: (data.get("name") as string)?.trim(),
-          categoryId: BigInt(data.get("category") as string),
+          categoryId: BigInt(catVal),
           phone: (data.get("phone") as string)?.trim(),
           city: (data.get("city") as string)?.trim(),
           state: (data.get("state") as string)?.trim(),
@@ -494,9 +526,50 @@ function attachVendorEvents(): void {
         form.reset();
         await loadVendorListings();
       } catch (err) {
-        if (msgEl) {
-          msgEl.className = "md:col-span-2";
-          msgEl.innerHTML = `<div style="background:oklch(0.95 0.1 27);color:oklch(0.5 0.15 27);padding:12px 16px;border-radius:8px;font-size:13px">Failed: ${err instanceof Error ? err.message : "Unknown error"}</div>`;
+        logApiFailure("submitListing", err);
+        if (isCanisterDownError(err)) {
+          // Save to localStorage and start retry loop
+          const listingPayload: Record<string, unknown> = {
+            name: (data.get("name") as string)?.trim(),
+            categoryId: String(data.get("category") || "1"),
+            phone: (data.get("phone") as string)?.trim(),
+            city: (data.get("city") as string)?.trim(),
+            state: (data.get("state") as string)?.trim(),
+            address: (data.get("address") as string)?.trim(),
+            website: (data.get("website") as string)?.trim() || "",
+            description: (data.get("description") as string)?.trim(),
+            lat: (data.get("lat") as string) || "20.5937",
+            lng: (data.get("lng") as string) || "78.9629",
+          };
+          queueListing(listingPayload);
+          startRetryLoop(async (d) => {
+            const be = await getAuthenticatedBackend();
+            await be.submitListing({
+              name: d.name as string,
+              categoryId: BigInt(d.categoryId as string),
+              phone: d.phone as string,
+              city: d.city as string,
+              state: d.state as string,
+              address: d.address as string,
+              website: (d.website as string) || "",
+              description: d.description as string,
+              photoIds: [],
+              location: {
+                lat: Number(d.lat) || 20.5937,
+                lng: Number(d.lng) || 78.9629,
+              },
+            });
+          });
+          if (msgEl) {
+            msgEl.className = "md:col-span-2";
+            msgEl.innerHTML = `<div style="background:oklch(0.95 0.1 200);color:oklch(0.35 0.1 200);padding:12px 16px;border-radius:8px;font-size:13px">⏳ Your listing is saved and will be submitted shortly.</div>`;
+          }
+          form.reset();
+        } else {
+          if (msgEl) {
+            msgEl.className = "md:col-span-2";
+            msgEl.innerHTML = `<div style="background:oklch(0.95 0.1 27);color:oklch(0.5 0.15 27);padding:12px 16px;border-radius:8px;font-size:13px">Failed: ${friendlyError(err)}</div>`;
+          }
         }
       } finally {
         if (submitBtn) {

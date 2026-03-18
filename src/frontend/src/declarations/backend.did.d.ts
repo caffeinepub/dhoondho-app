@@ -108,6 +108,7 @@ export interface _SERVICE {
   'deleteCategory' : ActorMethod<[bigint], undefined>,
   'deleteListing' : ActorMethod<[bigint], undefined>,
   'deletePendingListingsRange' : ActorMethod<[bigint, bigint], undefined>,
+  'forceResetAdmin' : ActorMethod<[], undefined>,
   'getAllVendors' : ActorMethod<[], Array<Vendor>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,

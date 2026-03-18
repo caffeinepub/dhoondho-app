@@ -24,12 +24,6 @@ mixin (accessControlState : AccessControl.AccessControlState) {
     AccessControl.assignRole(accessControlState, caller, user, role);
   };
 
-  // Bootstrap: claim admin role when no admin exists yet.
-  // Safe to call by anyone — only works once, when adminAssigned is false.
-  public shared ({ caller }) func claimFirstAdminRole() : async Bool {
-    AccessControl.bootstrapFirstAdmin(accessControlState, caller)
-  };
-
   public query ({ caller }) func isCallerAdmin() : async Bool {
     AccessControl.isAdmin(accessControlState, caller);
   };

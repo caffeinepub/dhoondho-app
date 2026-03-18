@@ -187,6 +187,7 @@ export interface backendInterface {
     deleteCategory(categoryId: bigint): Promise<void>;
     deleteListing(listingId: bigint): Promise<void>;
     deletePendingListingsRange(startId: bigint, endId: bigint): Promise<void>;
+    forceResetAdmin(): Promise<void>;
     getAllVendors(): Promise<Array<Vendor>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -439,6 +440,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deletePendingListingsRange(arg0, arg1);
+            return result;
+        }
+    }
+    async forceResetAdmin(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.forceResetAdmin();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.forceResetAdmin();
             return result;
         }
     }

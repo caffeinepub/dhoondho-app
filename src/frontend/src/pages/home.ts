@@ -3,6 +3,10 @@ import { getBackend } from "../backend-client";
 import { initFooterReactivity, renderPageFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES } from "../data/sampleData";
 import { getCurrentLanguage, onLanguageChange, setLanguage, t } from "../i18n";
+import { initAIAssistant } from "../utils/ai-assistant";
+import { getTrendingSearches } from "../utils/analytics";
+import { initLocationSystem } from "../utils/location-system";
+import { initVoiceSearch } from "../utils/voice-search";
 import { getProfilePhoto } from "./vendor";
 
 const LANGUAGES = [
@@ -88,20 +92,6 @@ interface UserLocation {
 
 let userLocation: UserLocation | null = null;
 
-function loadCachedLocation(): UserLocation | null {
-  const lat = localStorage.getItem("dhoondho_lat");
-  const lng = localStorage.getItem("dhoondho_lng");
-  if (lat && lng) {
-    return {
-      lat: Number.parseFloat(lat),
-      lng: Number.parseFloat(lng),
-      city: localStorage.getItem("dhoondho_city") || undefined,
-      state: localStorage.getItem("dhoondho_state") || undefined,
-    };
-  }
-  return null;
-}
-
 function cacheLocation(loc: UserLocation): void {
   localStorage.setItem("dhoondho_lat", String(loc.lat));
   localStorage.setItem("dhoondho_lng", String(loc.lng));
@@ -184,38 +174,6 @@ function updateLocationBanner(
   initFooterReactivity();
 }
 
-async function autoDetectLocation(): Promise<void> {
-  // Check cache first
-  const cached = loadCachedLocation();
-  if (cached) {
-    userLocation = cached;
-    initFooterReactivity();
-    return;
-  }
-
-  if (!navigator.geolocation) return;
-
-  updateLocationBanner("detecting");
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const { city, state } = await reverseGeocode(latitude, longitude);
-        userLocation = { lat: latitude, lng: longitude, city, state };
-        cacheLocation(userLocation);
-        updateLocationBanner("detected");
-        resolve();
-      },
-      () => {
-        updateLocationBanner("denied");
-        resolve();
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Render
 // ---------------------------------------------------------------------------
@@ -292,6 +250,18 @@ export async function renderHomePage(): Promise<void> {
       }
       @media (max-width: 380px) {
         .cat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      }
+      @media (max-width: 480px) {
+        
+        .share-widget { align-items: center !important; }
+        .share-widget button { flex-shrink: 0; }
+        nav { padding: 8px 12px !important; }
+        .logo-letter { letter-spacing: -1px !important; }
+        #location-banner { border-radius: 12px !important; padding: 8px 12px !important; }
+      }
+      @media (max-width: 360px) {
+        .nav-links-left, .nav-links-right { gap: 6px !important; }
+        .nav-link-home { font-size: 11px !important; }
       }
     </style>
 
@@ -407,6 +377,28 @@ export async function renderHomePage(): Promise<void> {
           </div>
         </div>
 
+        <!-- Trending Now -->
+        <div style="width:100%;max-width:640px;margin-top:32px">
+          <div style="text-align:center;font-size:11px;font-weight:700;letter-spacing:2px;color:#9aa0a6;margin-bottom:14px">TRENDING NOW 🔥</div>
+          <div id="trending-chips" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            ${getTrendingSearches()
+              .map(
+                (term) =>
+                  `<a href="#/search?q=${encodeURIComponent(term)}" style="display:inline-block;padding:8px 16px;background:#fff;border:1px solid #e8eaed;border-radius:99px;font-size:13px;font-weight:500;color:#202124;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06)">🔍 ${escapeHtml(term)}</a>`,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <!-- Share Dhoondho Widget -->
+        <div class="share-widget" style="width:100%;max-width:640px;margin-top:32px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:16px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1a7a3c">Share Dhoondho with friends 🤝</div>
+            <div style="font-size:12px;color:#5f6368;margin-top:2px">Help others discover local businesses</div>
+          </div>
+          <button id="share-dhoondho-btn" style="padding:10px 20px;background:#1a7a3c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:auto">Share Now</button>
+        </div>
+
       </div>
 
     ${renderPageFooter(main)}
@@ -422,7 +414,32 @@ export async function renderHomePage(): Promise<void> {
   attachHomeEvents(authed);
 
   // Auto-detect GPS location after render
-  autoDetectLocation();
+  // Enhanced location system (change detection, popup, manual input)
+  initLocationSystem({
+    onLocationDetected: (loc) => {
+      userLocation = {
+        lat: loc.lat,
+        lng: loc.lng,
+        city: loc.city,
+        state: loc.state,
+      };
+      updateLocationBanner("detected");
+    },
+    onLocationChanged: (loc) => {
+      userLocation = {
+        lat: loc.lat,
+        lng: loc.lng,
+        city: loc.city,
+        state: loc.state,
+      };
+      updateLocationBanner("detected");
+    },
+    onDenied: () => updateLocationBanner("denied"),
+    enableWatch: true,
+  });
+
+  // AI Assistant floating widget
+  initAIAssistant();
 }
 
 function attachHomeEvents(_authed: boolean): void {
@@ -449,7 +466,12 @@ function attachHomeEvents(_authed: boolean): void {
       } catch {
         /* ignore */
       }
-      window.location.hash = `#/search?q=${encodeURIComponent(q)}`;
+      const city = userLocation?.city || "";
+      if (city) {
+        window.location.hash = `#/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`;
+      } else {
+        window.location.hash = `#/search?q=${encodeURIComponent(q)}`;
+      }
     } else {
       window.location.hash = "#/search";
     }
@@ -607,25 +629,41 @@ function attachHomeEvents(_authed: boolean): void {
     ?.addEventListener("click", doNearby);
 
   // Voice search
-  document.getElementById("home-mic-btn")?.addEventListener("click", () => {
-    const SR =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      alert(t("voiceNotSupported"));
-      return;
-    }
-    const r = new SR();
-    r.lang = "en-IN";
-    r.start();
-    r.onresult = (e: any) => {
-      input.value = e.results[0][0].transcript;
-      doSearch();
-    };
-    r.onerror = () => alert(t("couldNotCaptureVoice"));
-  });
+  // Voice search (enhanced module with animations and proper error handling)
+  const micBtn = document.getElementById("home-mic-btn");
+  if (micBtn) {
+    initVoiceSearch({
+      inputEl: input,
+      micBtn: micBtn as HTMLElement,
+      onResult: () => doSearch(),
+    });
+  }
 
   document.getElementById("home-loc-btn")?.addEventListener("click", doNearby);
+
+  // Share Dhoondho button
+  document
+    .getElementById("share-dhoondho-btn")
+    ?.addEventListener("click", () => {
+      const shareData = {
+        title: "Dhoondho.App",
+        text: "Find local businesses near you across India! Try Dhoondho – India's local search engine.",
+        url: "https://dhoondho.app",
+      };
+      if (navigator.share) {
+        navigator.share(shareData).catch(() => {});
+      } else {
+        navigator.clipboard.writeText("https://dhoondho.app").then(() => {
+          const btn = document.getElementById("share-dhoondho-btn");
+          if (btn) {
+            btn.textContent = "✓ Link Copied!";
+            setTimeout(() => {
+              btn.textContent = "Share Now";
+            }, 2000);
+          }
+        });
+      }
+    });
 
   // Login button (non-authenticated)
   document
@@ -644,9 +682,26 @@ function attachHomeEvents(_authed: boolean): void {
       dropdown.style.display =
         dropdown.style.display === "none" ? "block" : "none";
     });
-    document.addEventListener("click", () => {
-      if (dropdown) dropdown.style.display = "none";
-    });
+    // Use a one-time capture listener to close dropdown on outside click
+    // Attach it on the document with {capture: true} and remove/re-add to avoid leaks
+    const closeDrop = (e: MouseEvent) => {
+      if (
+        dropdown &&
+        !dropdown.contains(e.target as Node) &&
+        e.target !== avatar
+      ) {
+        dropdown.style.display = "none";
+      }
+    };
+    // Remove any previously stored handler
+    if ((document as any)._dhoondhoDropClose) {
+      document.removeEventListener(
+        "click",
+        (document as any)._dhoondhoDropClose,
+      );
+    }
+    (document as any)._dhoondhoDropClose = closeDrop;
+    document.addEventListener("click", closeDrop);
   }
 
   document

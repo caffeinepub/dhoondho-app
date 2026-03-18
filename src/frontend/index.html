@@ -5,13 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dhoondho.App - Find Local Businesses in India</title>
     <meta name="description" content="Search for local businesses, services, and professionals across India. Find restaurants, doctors, salons, plumbers, electricians, and more." />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Dhoondho.App - India's Local Search Engine" />
+    <meta property="og:description" content="Find local businesses, services, and professionals across India. Search by city, GPS, or category." />
+    <meta property="og:image" content="https://dhoondho.app/assets/generated/hero-india-market.dim_1920x600.jpg" />
+    <meta property="og:url" content="https://dhoondho.app" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Dhoondho.App - India's Local Search Engine" />
+    <meta name="twitter:description" content="Find local businesses across India. Free, fast, and accurate." />
+    <meta name="twitter:image" content="https://dhoondho.app/assets/generated/hero-india-market.dim_1920x600.jpg" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1a7a3c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Dhoondho" />
+
+    <!-- Sitemap -->
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+      .page-content { animation: fadeInPage 0.3s ease forwards; }
+      @keyframes fadeInPage { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
   </head>
   <body class="bg-background text-foreground">
     <div id="app">
       <div id="navbar-container"></div>
-      <main id="main-content"></main>
+      <main id="main-content" class="page-content"></main>
       <div id="footer-container"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

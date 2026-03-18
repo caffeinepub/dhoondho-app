@@ -122,6 +122,23 @@ actor {
   include MixinAuthorization(accessControlState);
   include MixinStorage();
 
+  // ─── Stable storage for admin roles (survives upgrades/redeploys) ───────────
+  stable var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  stable var stableAdminAssigned : Bool = false;
+
+  system func preupgrade() {
+    stableUserRoles := accessControlState.userRoles.entries().toArray();
+    stableAdminAssigned := accessControlState.adminAssigned;
+  };
+
+  system func postupgrade() {
+    for ((p, r) in stableUserRoles.vals()) {
+      accessControlState.userRoles.add(p, r);
+    };
+    accessControlState.adminAssigned := stableAdminAssigned;
+  };
+  // ────────────────────────────────────────────────────────────────────────────
+
   // Custom mapFilter function for arrays
   func mapFilterArray<T, U>(array : [T], mappingFunction : (T) -> ?U) : [U] {
     let iter = array.values();
@@ -137,10 +154,58 @@ actor {
     list.toArray();
   };
 
+  // Bootstrap: claim admin role if no admin exists yet.
+  // Returns true if caller was successfully made admin, false if an admin already exists.
+  public shared ({ caller }) func claimFirstAdminRole() : async Bool {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Must be logged in to claim admin");
+    };
+    // If caller is already admin, return true (idempotent)
+    if (AccessControl.isAdmin(accessControlState, caller)) {
+      return true;
+    };
+    // Check if any admin already exists
+    var adminExists = false;
+    for ((_, role) in accessControlState.userRoles.entries()) {
+      if (role == #admin) {
+        adminExists := true;
+      };
+    };
+    if (adminExists) {
+      return false;
+    };
+    // No admin yet — assign caller as admin and persist
+    accessControlState.userRoles.add(caller, #admin);
+    accessControlState.adminAssigned := true;
+    stableUserRoles := accessControlState.userRoles.entries().toArray();
+    stableAdminAssigned := true;
+    return true;
+  };
+
+  // Force-reset admin: removes all admin entries so claimFirstAdminRole can be used again.
+  // Password check is enforced on the frontend (dhoondho3456).
+  public shared ({ caller }) func forceResetAdmin() : async () {
+    // Collect principals with admin role
+    let toRemove = List.empty<Principal>();
+    for ((principal, role) in accessControlState.userRoles.entries()) {
+      if (role == #admin) {
+        toRemove.add(principal);
+      };
+    };
+    // Remove them
+    for (principal in toRemove.values()) {
+      accessControlState.userRoles.remove(principal);
+    };
+    accessControlState.adminAssigned := false;
+    // Immediately persist the cleared state
+    stableUserRoles := accessControlState.userRoles.entries().toArray();
+    stableAdminAssigned := false;
+  };
+
   // User Profile Management (required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access profiles");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to view your profile");
     };
     userProfiles.get(caller);
   };
@@ -153,8 +218,12 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to save your profile");
+    };
+    // Auto-register if not yet in the system
+    if (accessControlState.userRoles.get(caller) == null) {
+      accessControlState.userRoles.add(caller, #user);
     };
     userProfiles.add(caller, profile);
   };
@@ -308,8 +377,8 @@ actor {
   };
 
   public shared ({ caller }) func updateListing(listingId : Nat, input : ListingInput) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only vendors can update listings");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to update a listing");
     };
 
     switch (listings.get(listingId)) {
@@ -344,8 +413,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteListing(listingId : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only vendors can delete listings");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to delete a listing");
     };
 
     switch (listings.get(listingId)) {
@@ -461,8 +530,8 @@ actor {
 
   // Vendor Management
   public shared ({ caller }) func addVendor(vendor : Vendor) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can register as vendors");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please log in to register as a vendor");
     };
 
     // Ensure the vendor is registering themselves

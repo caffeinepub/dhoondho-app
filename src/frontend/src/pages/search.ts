@@ -8,7 +8,27 @@ import {
   SAMPLE_LISTINGS,
 } from "../data/sampleData";
 import type { Category, Listing } from "../data/sampleData";
+import { trackSearch } from "../utils/analytics";
 import { showToast } from "../utils/toast";
+
+function isVerifiedListing(id: string): boolean {
+  try {
+    const ids: string[] = JSON.parse(
+      localStorage.getItem("dhoondho_verified_listings") || "[]",
+    );
+    return ids.includes(String(id));
+  } catch {
+    return false;
+  }
+}
+
+function getPriceRangeBadge(tier: string | number | undefined): string {
+  if (!tier) return "";
+  const n = Number(tier);
+  const symbol = n === 1 ? "₹" : n === 2 ? "₹₹" : n === 3 ? "₹₹₹" : "";
+  if (!symbol) return "";
+  return `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#fff8e1;color:#f57f17;border:1px solid #ffe082">${symbol}</span>`;
+}
 
 let mapInstance: any = null;
 let currentListings: Listing[] = [];
@@ -79,9 +99,13 @@ function listingCard(listing: Listing, index: number): string {
           <div class="flex-1 min-w-0">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
               ${featuredBadge}
+              ${isVerifiedListing(String(listing.id)) ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9">✓ Verified</span>` : ""}
               ${availabilityBadge(listing)}
             </div>
-            <h3 class="font-semibold text-base truncate" style="color:oklch(var(--foreground))">${escapeHtml(listing.name)}</h3>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <h3 class="font-semibold text-base truncate" style="color:oklch(var(--foreground));margin:0">${escapeHtml(listing.name)}</h3>
+              ${getPriceRangeBadge((listing as any).priceRange)}
+            </div>
             <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mt-1" style="background:oklch(var(--secondary));color:oklch(var(--secondary-foreground))">
               ${getCategoryIcon(listing.categoryId)} ${escapeHtml(getCategoryName(listing.categoryId))}
             </span>
@@ -101,6 +125,9 @@ function listingCard(listing: Listing, index: number): string {
         }
         <p class="text-sm mt-2 line-clamp-2" style="color:oklch(var(--muted-foreground))">${escapeHtml(listing.description)}</p>
       </a>
+      <div style="padding:0 20px 14px;text-align:right">
+        <button class="view-details-btn" data-listing-id="${String(listing.id)}" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:#2563eb;padding:0">View Details →</button>
+      </div>
     </div>
   `;
 }
@@ -152,7 +179,7 @@ function initMap(listings: Listing[], city: string): void {
           <span style="color:#666;font-size:12px">${getCategoryIcon(listing.categoryId)} ${escapeHtml(getCategoryName(listing.categoryId))}</span><br/>
           <span style="color:#666;font-size:12px">${escapeHtml(listing.address)}</span><br/>
           ${listing.phone ? `<span style="font-size:12px">${escapeHtml(listing.phone)}</span><br/>` : ""}
-          <a href="#/listing/${listing.id}" style="font-size:12px;color:#2563eb">View Details &rarr;</a>
+          <button onclick="window.location.hash='#/listing/'+String(${listing.id})" style="font-size:12px;color:#2563eb;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;margin-top:4px;display:block">View Details &rarr;</button>
         </div>
       `);
       marker.addTo(mapInstance);
@@ -212,6 +239,31 @@ function renderListings(listings: Listing[], loading: boolean): void {
       );
     });
   }
+
+  // Attach View Details button handlers
+  for (const btn of listContainer.querySelectorAll<HTMLButtonElement>(
+    ".view-details-btn",
+  )) {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.listingId || "";
+      try {
+        const toSave = currentListings.map((l) => ({
+          ...l,
+          id: String(l.id),
+          categoryId: String(l.categoryId),
+          createdTime: String(l.createdTime),
+        }));
+        sessionStorage.setItem(
+          "dhoondho_listing_cache",
+          JSON.stringify(toSave),
+        );
+      } catch {
+        /* ignore */
+      }
+      window.location.hash = `#/listing/${id}`;
+    });
+  }
 }
 
 export async function renderSearchPage(params: URLSearchParams): Promise<void> {
@@ -219,6 +271,7 @@ export async function renderSearchPage(params: URLSearchParams): Promise<void> {
   if (!main) return;
 
   const city = params.get("city") || "";
+  const q = params.get("q") || "";
   const category = params.get("category") || "";
   const lat = params.get("lat");
   const lng = params.get("lng");
@@ -315,18 +368,18 @@ export async function renderSearchPage(params: URLSearchParams): Promise<void> {
 
         <!-- Map View -->
         <div id="map-view" class="${activeView === "list" ? "hidden" : ""}">
-          <div id="map-container" style="height:600px;border-radius:12px;overflow:hidden;border:1px solid oklch(var(--border))"></div>
+          <div id="map-container" id="map-responsive-container" style="height:280px;border-radius:12px;overflow:hidden;border:1px solid oklch(var(--border))"></div>
         </div>
       </div>
     ${renderPageFooter(main)}
     </div>
   `;
 
-  attachSearchEvents(city, category);
+  attachSearchEvents(city || q, category);
 
   // Load listings
   await loadSearchResults(
-    city,
+    city || q,
     category,
     lat ? Number.parseFloat(lat) : undefined,
     lng ? Number.parseFloat(lng) : undefined,
@@ -469,7 +522,12 @@ async function loadSearchResults(
   lng?: number,
 ): Promise<void> {
   renderListings([], true);
-  if (city) saveSearchQuery(city);
+  if (city) {
+    trackSearch(city, city);
+    saveSearchQuery(city);
+  } else if (category) {
+    trackSearch(category, "");
+  }
 
   let listings: Listing[] = [];
 
@@ -538,6 +596,18 @@ async function loadSearchResults(
     : listings;
 
   currentListings = listings;
+  // Save to sessionStorage for detail page lookup
+  try {
+    const toSave = listings.map((l) => ({
+      ...l,
+      id: String(l.id),
+      categoryId: String(l.categoryId),
+      createdTime: String(l.createdTime),
+    }));
+    sessionStorage.setItem("dhoondho_listing_cache", JSON.stringify(toSave));
+  } catch {
+    /* ignore */
+  }
   renderListings(filtered, false);
 
   if (activeView === "map") initMap(filtered, city);
@@ -547,4 +617,8 @@ async function loadSearchResults(
 export function cleanupSearchPage(): void {
   destroyMap();
   activeView = "list";
+}
+
+export function getCachedListings(): Listing[] {
+  return currentListings;
 }

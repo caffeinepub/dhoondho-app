@@ -7,8 +7,15 @@ export function renderAboutPage(): void {
   if (!main) return;
 
   main.innerHTML = `
+    <style>
+      @media (max-width: 600px) {
+        .about-container { padding: 24px 16px !important; }
+        .about-logo-text { font-size: clamp(32px, 9vw, 52px) !important; }
+        .about-cta { display: block; text-align: center; }
+      }
+    </style>
     <div style="min-height:100vh;background:#fff;display:flex;flex-direction:column">
-      <div style="max-width:800px;margin:0 auto;padding:48px 24px;flex:1">
+      <div class="about-container" style="max-width:800px;margin:0 auto;padding:48px 24px;flex:1">
         <a href="#/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a73e8;text-decoration:none;margin-bottom:32px">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           Back to Home
@@ -16,7 +23,7 @@ export function renderAboutPage(): void {
 
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:40px">
-          <div style="font-size:52px;font-weight:700;letter-spacing:-2px;line-height:1">
+          <div class="about-logo-text" style="font-size:clamp(32px, 9vw, 52px);font-weight:700;letter-spacing:-2px;line-height:1">
             <span style="color:#EA4335">D</span><span style="color:#4285F4">h</span><span style="color:#FBBC05">o</span><span style="color:#34A853">o</span><span style="color:#EA4335">n</span><span style="color:#4285F4">d</span><span style="color:#FBBC05">h</span><span style="color:#34A853">o</span>
           </div>
           <p style="font-size:16px;color:#5f6368;margin-top:6px">India's First Local Search Engine</p>

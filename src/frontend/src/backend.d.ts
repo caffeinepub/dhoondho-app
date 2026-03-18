@@ -83,9 +83,11 @@ export interface backendInterface {
     adminUpdateListing(listingId: bigint, input: ListingInput): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     changeListingStatus(listingId: bigint, newStatus: ListingStatus): Promise<void>;
+    claimFirstAdminRole(): Promise<boolean>;
     deleteCategory(categoryId: bigint): Promise<void>;
     deleteListing(listingId: bigint): Promise<void>;
     deletePendingListingsRange(startId: bigint, endId: bigint): Promise<void>;
+    forceResetAdmin(): Promise<void>;
     getAllVendors(): Promise<Array<Vendor>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;

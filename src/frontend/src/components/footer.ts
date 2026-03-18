@@ -45,7 +45,7 @@ function buildPageFooterHTML(): string {
           <a href="#/support">${t("support")}</a>
         </div>
         <div class="footer-bottom">
-          <p>\u00a9 2025 - 2026 | Dhoondho India</p>
+          <p>\u00a9 ${new Date().getFullYear()} | Dhoondho India</p>
         </div>
       </div>
     </footer>
@@ -54,6 +54,7 @@ function buildPageFooterHTML(): string {
 
 // Keep page footer reactive: re-render when language changes or location updates
 let footerLangUnsub: (() => void) | null = null;
+let _footerLocationHandler: (() => void) | null = null;
 
 export function initFooterReactivity(): void {
   if (footerLangUnsub) footerLangUnsub();
@@ -61,9 +62,11 @@ export function initFooterReactivity(): void {
     refreshPageFooter();
   });
 
-  window.addEventListener("dhoondho:location", () => {
-    refreshPageFooter();
-  });
+  if (_footerLocationHandler) {
+    window.removeEventListener("dhoondho:location", _footerLocationHandler);
+  }
+  _footerLocationHandler = () => refreshPageFooter();
+  window.addEventListener("dhoondho:location", _footerLocationHandler);
 }
 
 function refreshPageFooter(): void {

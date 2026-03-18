@@ -164,8 +164,14 @@ export function renderBlogPage(): void {
   }
 
   main.innerHTML = `
+    <style>
+      @media (max-width: 600px) {
+        .blog-container { padding: 24px 16px !important; }
+        .blog-articles-grid { grid-template-columns: 1fr !important; }
+      }
+    </style>
     <div style="min-height:100vh;background:#fff;display:flex;flex-direction:column">
-      <div style="max-width:900px;margin:0 auto;padding:48px 24px;flex:1">
+      <div class="blog-container" style="max-width:900px;margin:0 auto;padding:48px 24px;flex:1">
         <a href="#/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a73e8;text-decoration:none;margin-bottom:32px">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           Back to Home
@@ -187,7 +193,7 @@ export function renderBlogPage(): void {
         </div>
 
         <!-- Articles grid -->
-        <div id="blog-articles-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px">
+        <div id="blog-articles-grid" class="blog-articles-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px">
           ${renderArticles("All")}
         </div>
 
@@ -225,6 +231,47 @@ export function renderBlogPage(): void {
   }
 
   attachCardHover();
+  attachCardClick();
+}
+
+function openArticleModal(article: BlogArticle): void {
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px";
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 24px 32px;position:relative">
+      <button id="blog-modal-close" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;font-size:22px;color:#5f6368;line-height:1">×</button>
+      <div style="font-size:40px;text-align:center;margin-bottom:16px">${article.emoji}</div>
+      <span style="font-size:11px;font-weight:600;color:#1a7a3c;background:#e8f5e9;padding:3px 10px;border-radius:12px">${escapeHtml(article.category)}</span>
+      <h2 style="font-size:20px;font-weight:700;color:#202124;margin:12px 0 8px;line-height:1.4">${escapeHtml(article.title)}</h2>
+      <div style="font-size:12px;color:#9aa0a6;margin-bottom:16px">${escapeHtml(article.date)} &bull; ${escapeHtml(article.author)} &bull; ${escapeHtml(article.readTime)}</div>
+      <p style="font-size:15px;color:#3c4043;line-height:1.7">${escapeHtml(article.summary)}</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay
+    .querySelector("#blog-modal-close")
+    ?.addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") {
+      overlay.remove();
+      document.removeEventListener("keydown", onEsc);
+    }
+  });
+}
+
+function attachCardClick(): void {
+  const allArticles = getBlogArticles();
+  for (const card of document.querySelectorAll<HTMLElement>(".blog-card")) {
+    card.addEventListener("click", () => {
+      const id = card.dataset.id;
+      const article = allArticles.find((a) => a.id === id);
+      if (article) openArticleModal(article);
+    });
+  }
 }
 
 function attachCardHover(): void {
