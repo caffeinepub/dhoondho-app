@@ -172,3 +172,55 @@ button {
     font-size: 13px;
   }
 }
+
+/* =========================================
+   STICKY FOOTER LAYOUT
+   ========================================= */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#main-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* =========================================
+   ADMIN PANEL MOBILE
+   ========================================= */
+.admin-tabs-bar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.admin-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tabs-bar button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .admin-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .admin-tabs-bar {
+    padding: 4px;
+  }
+
+  .admin-tabs-bar button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}

@@ -29,6 +29,7 @@ async function getNavbarHTML(): Promise<string> {
           <!-- Desktop Nav -->
           <div class="hidden md:flex items-center gap-5">
             <a href="#/about" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("about")}</a>
+            <a href="#/how-it-works" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">How It Works</a>
             <a href="#/blog" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("blog")}</a>
             <a href="#/contributors" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">&#127942; Contributors</a>
             <a href="#/vendor" class="text-sm font-medium no-underline hover:opacity-70" style="color:#202124">${t("forBusinesses")}</a>
@@ -51,6 +52,7 @@ async function getNavbarHTML(): Promise<string> {
           <a href="#/about" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("about")}</a>
           <a href="#/blog" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("blog")}</a>
           <a href="#/contributors" class="text-sm font-medium py-2 no-underline" style="color:#202124">&#127942; Contributors</a>
+          <a href="#/how-it-works" class="text-sm font-medium py-2 no-underline" style="color:#202124">How It Works</a>
           <a href="#/vendor" class="text-sm font-medium py-2 no-underline" style="color:#202124">${t("forBusinesses")}</a>
           <a href="#/admin" class="text-sm font-medium py-2 no-underline" style="color:#9aa0a6">${t("admin")}</a>
           <div class="pt-2 border-t" style="border-color:#e8eaed">

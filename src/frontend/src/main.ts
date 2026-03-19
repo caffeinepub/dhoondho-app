@@ -8,6 +8,7 @@ import { renderContributorsPage } from "./pages/contributors";
 import { renderCookiesPage } from "./pages/cookies";
 import { renderDashboardPage } from "./pages/dashboard";
 import { renderHomePage } from "./pages/home";
+import { renderHowItWorksPage } from "./pages/how-it-works";
 import { cleanupListingPage, renderListingPage } from "./pages/listing";
 import { renderPrivacyPage } from "./pages/privacy";
 import { cleanupSearchPage, renderSearchPage } from "./pages/search";
@@ -65,6 +66,9 @@ async function route(): Promise<void> {
     initFooterReactivity();
   } else if (path === "/admin") {
     await renderAdminPage();
+    initFooterReactivity();
+  } else if (path === "/how-it-works") {
+    renderHowItWorksPage();
     initFooterReactivity();
   } else if (path === "/about") {
     renderAboutPage();

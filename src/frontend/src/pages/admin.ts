@@ -18,6 +18,16 @@ import {
   startRetryLoop,
 } from "../utils/canister-error-handler";
 import { showToast } from "../utils/toast";
+import { renderAdvancedAnalyticsTab } from "./admin-analytics-advanced";
+import { renderDocVerificationTab } from "./admin-docverification";
+import { renderLogsTab } from "./admin-logs";
+import { renderMapControlTab } from "./admin-mapcontrol";
+import { renderMonetizationTab } from "./admin-monetization";
+import { renderNotificationsTab } from "./admin-notifications";
+import { renderSearchControlTab } from "./admin-searchcontrol";
+import { renderTicketsTab } from "./admin-tickets";
+import { renderFeatureTogglesTab } from "./admin-toggles";
+import { renderUserManagementTab } from "./admin-users";
 import {
   type BlogArticle,
   getAdminBlogArticles,
@@ -31,7 +41,17 @@ type AdminTab =
   | "blog"
   | "suggestions"
   | "claims"
-  | "analytics";
+  | "analytics"
+  | "users"
+  | "tickets"
+  | "toggles"
+  | "notifications"
+  | "monetization"
+  | "advanalytics"
+  | "logs"
+  | "mapcontrol"
+  | "searchcontrol"
+  | "docverify";
 let activeTab: AdminTab = "pending";
 
 function escapeHtml(str: string): string {
@@ -139,7 +159,7 @@ export async function renderAdminPage(): Promise<void> {
               The platform already has an admin. If you are the owner and want to take over as admin,
               click <strong>Reset &amp; Claim Admin</strong>.
             </p>
-            <div class="flex items-center gap-3 mt-3">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-3">
               <button id="reset-claim-admin-btn" data-ocid="admin.primary_button" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white" style="background:oklch(0.55 0.18 27)">Reset &amp; Claim Admin</button>
               <span id="claim-admin-status" class="text-xs" style="color:oklch(0.55 0.08 27)"></span>
             </div>
@@ -153,7 +173,7 @@ export async function renderAdminPage(): Promise<void> {
           <div class="flex-1">
             <p class="text-sm font-semibold" style="color:oklch(0.45 0.12 85)">Admin setup pending</p>
             <p class="text-xs mt-0.5" style="color:oklch(0.55 0.08 85)">You can continue using the platform. Click below to claim admin access.</p>
-            <div class="flex items-center gap-3 mt-2">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
               <button id="claim-admin-btn" data-ocid="admin.primary_button" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white" style="background:oklch(0.6 0.15 85)">Claim Admin Access</button>
               <span id="claim-admin-status" class="text-xs" style="color:oklch(0.55 0.08 85)"></span>
             </div>
@@ -164,19 +184,38 @@ export async function renderAdminPage(): Promise<void> {
   }
 
   main.innerHTML = `
-    <div class="min-h-screen" style="background:oklch(var(--secondary))">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div class="admin-page-header flex items-center justify-between mb-8">
+    <div class="flex flex-col flex-1 w-full" style="background:oklch(var(--secondary))">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1">
+        <div class="admin-page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
           <div>
             <h1 class="text-3xl font-bold" style="color:oklch(var(--foreground))">Admin Panel</h1>
             <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Manage listings, categories, vendors, and blog</p>
           </div>
         </div>
 
+        <!-- Quick Stats Dashboard -->
+        <div id="admin-quick-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div class="rounded-xl p-4 text-center" style="background:oklch(var(--card));border:1px solid oklch(var(--border))">
+            <div class="text-xl font-bold" style="color:oklch(var(--primary))" id="qs-users">-</div>
+            <div class="text-xs mt-0.5" style="color:oklch(var(--muted-foreground))">Users</div>
+          </div>
+          <div class="rounded-xl p-4 text-center" style="background:oklch(var(--card));border:1px solid oklch(var(--border))">
+            <div class="text-xl font-bold" style="color:#1a7a3c" id="qs-listings">-</div>
+            <div class="text-xs mt-0.5" style="color:oklch(var(--muted-foreground))">Listings</div>
+          </div>
+          <div class="rounded-xl p-4 text-center" style="background:oklch(var(--card));border:1px solid oklch(var(--border))">
+            <div class="text-xl font-bold" style="color:#e65100" id="qs-tickets">-</div>
+            <div class="text-xs mt-0.5" style="color:oklch(var(--muted-foreground))">Open Tickets</div>
+          </div>
+          <div class="rounded-xl p-4 text-center" style="background:oklch(var(--card));border:1px solid oklch(var(--border))">
+            <div class="text-xl font-bold" style="color:#6a1b9a" id="qs-docs">-</div>
+            <div class="text-xs mt-0.5" style="color:oklch(var(--muted-foreground))">Pending Docs</div>
+          </div>
+        </div>
         ${adminWarningBanner}
 
         <!-- Tabs -->
-        <div class="admin-tabs-bar flex gap-1 bg-white rounded-xl border p-1 mb-6" style="border-color:oklch(var(--border));min-width:0">
+        <div class="admin-tabs-bar flex flex-nowrap gap-1 bg-white rounded-xl border p-1 mb-6" style="border-color:oklch(var(--border));min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
           <button id="tab-pending" data-ocid="admin.tab" data-tab="pending" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
             Pending Listings
           </button>
@@ -198,6 +237,36 @@ export async function renderAdminPage(): Promise<void> {
           <button id="tab-analytics" data-ocid="admin.tab" data-tab="analytics" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
             📊 Analytics
           </button>
+          <button id="tab-users" data-ocid="admin.tab" data-tab="users" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            👥 Users
+          </button>
+          <button id="tab-tickets" data-ocid="admin.tab" data-tab="tickets" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            🎫 Tickets
+          </button>
+          <button id="tab-toggles" data-ocid="admin.tab" data-tab="toggles" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            ⚙️ Toggles
+          </button>
+          <button id="tab-notifications" data-ocid="admin.tab" data-tab="notifications" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            🔔 Notify
+          </button>
+          <button id="tab-monetization" data-ocid="admin.tab" data-tab="monetization" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            💰 Revenue
+          </button>
+          <button id="tab-advanalytics" data-ocid="admin.tab" data-tab="advanalytics" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            📈 Deep Analytics
+          </button>
+          <button id="tab-logs" data-ocid="admin.tab" data-tab="logs" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            🗒️ Logs
+          </button>
+          <button id="tab-mapcontrol" data-ocid="admin.tab" data-tab="mapcontrol" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            🗺️ Map Control
+          </button>
+          <button id="tab-searchcontrol" data-ocid="admin.tab" data-tab="searchcontrol" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            🔍 Search Ranking
+          </button>
+          <button id="tab-docverify" data-ocid="admin.tab" data-tab="docverify" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+            📋 Doc Verify
+          </button>
         </div>
 
         <!-- Tab Content -->
@@ -213,6 +282,7 @@ export async function renderAdminPage(): Promise<void> {
 
   attachAdminTabEvents();
   switchAdminTab(activeTab);
+  loadQuickStats();
 
   // Wire "Reset & Claim Admin" button
   const resetClaimBtn = document.getElementById(
@@ -351,6 +421,47 @@ function showAdminPasswordScreen(main: HTMLElement): void {
   });
 }
 
+function loadQuickStats(): void {
+  try {
+    const users = JSON.parse(
+      localStorage.getItem("dhoondho_users_registry") || "[]",
+    );
+    const tickets = JSON.parse(
+      localStorage.getItem("dhoondho_support_tickets") || "[]",
+    );
+    const docs = JSON.parse(
+      localStorage.getItem("dhoondho_doc_submissions") || "[]",
+    );
+    const listings = JSON.parse(
+      localStorage.getItem("dhoondho_listings_cache") || "[]",
+    );
+    const el = (id: string, val: string) => {
+      const e = document.getElementById(id);
+      if (e) e.textContent = val;
+    };
+    el("qs-users", String(users.length || 0));
+    el("qs-listings", String(listings.length || 0));
+    el(
+      "qs-tickets",
+      String(
+        tickets.filter(
+          (t: Record<string, string>) =>
+            t.status === "open" || t.status === "in-progress",
+        ).length || 0,
+      ),
+    );
+    el(
+      "qs-docs",
+      String(
+        docs.filter((d: Record<string, string>) => d.status === "pending")
+          .length || 0,
+      ),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 function attachAdminTabEvents(): void {
   for (const btn of document.querySelectorAll<HTMLElement>("[data-tab]")) {
     btn.addEventListener("click", () => {
@@ -387,6 +498,37 @@ function switchAdminTab(tab: AdminTab): void {
   else if (tab === "suggestions") loadSuggestions();
   else if (tab === "claims") loadClaims();
   else if (tab === "analytics") loadAnalytics();
+  else if (tab === "users") {
+    content.innerHTML = "";
+    renderUserManagementTab(content);
+  } else if (tab === "tickets") {
+    content.innerHTML = "";
+    renderTicketsTab(content);
+  } else if (tab === "toggles") {
+    content.innerHTML = "";
+    renderFeatureTogglesTab(content);
+  } else if (tab === "notifications") {
+    content.innerHTML = "";
+    renderNotificationsTab(content);
+  } else if (tab === "monetization") {
+    content.innerHTML = "";
+    renderMonetizationTab(content);
+  } else if (tab === "advanalytics") {
+    content.innerHTML = "";
+    renderAdvancedAnalyticsTab(content);
+  } else if (tab === "logs") {
+    content.innerHTML = "";
+    renderLogsTab(content);
+  } else if (tab === "mapcontrol") {
+    content.innerHTML = "";
+    renderMapControlTab(content);
+  } else if (tab === "searchcontrol") {
+    content.innerHTML = "";
+    renderSearchControlTab(content);
+  } else if (tab === "docverify") {
+    content.innerHTML = "";
+    renderDocVerificationTab(content);
+  }
 }
 
 // ─── Add Listing Form (Admin) ────────────────────────────────────────────────
@@ -455,7 +597,7 @@ function renderAddListingForm(): string {
           <textarea data-ocid="admin.input" name="description" required rows="3" placeholder="Brief description of the business..." class="w-full px-3 py-2 rounded-lg border text-sm resize-none" style="border-color:oklch(var(--border))"></textarea>
         </div>
         <div id="listing-form-error" class="md:col-span-2 hidden px-3 py-2 rounded-lg text-xs" style="background:oklch(0.95 0.1 27);color:oklch(0.5 0.15 27)"></div>
-        <div class="md:col-span-2 flex gap-3">
+        <div class="md:col-span-2 flex flex-wrap gap-3">
           <button type="submit" data-ocid="admin.submit_button" class="px-5 py-2 text-sm font-bold rounded-lg text-white" style="background:oklch(var(--primary))">Add &amp; Approve Listing</button>
           <button type="button" id="cancel-listing-btn" data-ocid="admin.cancel_button" class="px-5 py-2 text-sm font-semibold rounded-lg border" style="border-color:oklch(var(--border))">Cancel</button>
         </div>
@@ -493,8 +635,8 @@ function loadSuggestions(): void {
             .map(
               (item, i) => `
             <div data-ocid="admin.item.${i + 1}" class="p-5">
-              <div class="flex items-start justify-between gap-4">
-                <div>
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div class="flex-1 min-w-0">
                   <div class="text-sm font-semibold" style="color:oklch(var(--foreground))">Listing #${escapeHtml(item.listingId)}</div>
                   <div class="text-xs mt-1" style="color:oklch(var(--muted-foreground))">Field: <strong>${escapeHtml(item.field || "general")}</strong></div>
                   <div class="text-sm mt-2" style="color:oklch(var(--foreground))">${escapeHtml(item.suggestion)}</div>
@@ -557,14 +699,14 @@ function loadClaims(): void {
             .map(
               (item, i) => `
             <div data-ocid="admin.item.${i + 1}" class="p-5">
-              <div class="flex items-start justify-between gap-4">
-                <div>
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div class="flex-1 min-w-0">
                   <div class="text-sm font-semibold" style="color:oklch(var(--foreground))">Listing #${escapeHtml(item.listingId)}</div>
                   <div class="text-sm mt-1">Owner: <strong>${escapeHtml(item.ownerName)}</strong> &bull; ${escapeHtml(item.phone)}</div>
                   ${item.proof ? `<div class="text-sm mt-1 text-gray-500">${escapeHtml(item.proof)}</div>` : ""}
                   <div class="text-xs mt-1" style="color:oklch(var(--muted-foreground))">${new Date(item.time).toLocaleString("en-IN")}</div>
                 </div>
-                <div class="flex gap-2 flex-shrink-0">
+                <div class="flex flex-wrap gap-2 flex-shrink-0">
                   <button data-approve-claim="${items.length - 1 - i}" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white" style="background:#1a7a3c;cursor:pointer;border:none">Approve</button>
                   <button data-dismiss-claim="${items.length - 1 - i}" class="px-3 py-1.5 text-xs font-semibold rounded-lg border" style="border-color:oklch(var(--border));color:oklch(var(--muted-foreground));cursor:pointer;background:#fff">Dismiss</button>
                 </div>
@@ -644,14 +786,14 @@ async function loadPendingListings(): Promise<void> {
           ${listings
             .map(
               (l, i) => `
-            <div data-ocid="admin.item.${i + 1}" class="p-5 flex items-start gap-4" style="border-bottom:1px solid oklch(var(--border))">
+            <div data-ocid="admin.item.${i + 1}" class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4" style="border-bottom:1px solid oklch(var(--border))">
               <div class="flex-1 min-w-0">
                 <h3 class="font-semibold" style="color:oklch(var(--foreground))">${escapeHtml(l.name)}</h3>
                 <p class="text-sm mt-0.5" style="color:oklch(var(--muted-foreground))">${escapeHtml(getCategoryName(l.categoryId))} &bull; ${escapeHtml(l.city)}, ${escapeHtml(l.state)}</p>
                 <p class="text-xs mt-1" style="color:oklch(var(--muted-foreground))">${escapeHtml(l.address)}</p>
                 <p class="text-xs mt-1" style="color:oklch(var(--muted-foreground))">${escapeHtml(l.description).substring(0, 120)}...</p>
               </div>
-              <div class="flex gap-2 flex-shrink-0">
+              <div class="flex flex-wrap gap-2 flex-shrink-0">
                 <button data-action="approve" data-id="${l.id}" data-ocid="admin.confirm_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(0.55 0.15 145)">✓ Approve</button>
                 <button data-action="verify" data-id="${l.id}" data-ocid="admin.toggle" class="px-4 py-2 text-xs font-bold rounded-lg border" style="border-color:#1565c0;color:#1565c0;background:${isVerifiedListing(String(l.id)) ? "#e3f2fd" : "#fff"}">${isVerifiedListing(String(l.id)) ? "✓ Verified" : "Mark Verified"}</button>
                 <button data-action="reject" data-id="${l.id}" data-ocid="admin.delete_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(var(--destructive))">✕ Reject</button>
@@ -664,9 +806,9 @@ async function loadPendingListings(): Promise<void> {
 
   content.innerHTML = `
     <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:oklch(var(--border))">
-      <div class="p-5 border-b flex items-center justify-between" style="border-color:oklch(var(--border))">
+      <div class="p-5 border-b flex flex-wrap items-center justify-between gap-3" style="border-color:oklch(var(--border))">
         <h2 class="font-bold" style="color:oklch(var(--foreground))">Pending Listings (${listings.length})</h2>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           ${listings.length > 0 ? `<button id="approve-all-btn" data-ocid="admin.approve_all_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(0.55 0.15 145)">✓ Approve All</button>` : ""}
           <button id="add-listing-btn" data-ocid="admin.primary_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(var(--primary))">+ Add Business Listing</button>
         </div>
@@ -887,7 +1029,7 @@ async function loadCategories(): Promise<void> {
 
   content.innerHTML = `
     <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:oklch(var(--border))">
-      <div class="p-5 border-b flex items-center justify-between" style="border-color:oklch(var(--border))">
+      <div class="p-5 border-b flex flex-wrap items-center justify-between gap-3" style="border-color:oklch(var(--border))">
         <h2 class="font-bold" style="color:oklch(var(--foreground))">Categories (${categories.length})</h2>
         <button id="add-cat-btn" data-ocid="admin.primary_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(var(--primary))">+ Add Category</button>
       </div>
@@ -900,8 +1042,8 @@ async function loadCategories(): Promise<void> {
           <button type="button" id="cancel-cat-btn" data-ocid="admin.cancel_button" class="px-4 py-2 text-xs font-semibold rounded-lg border" style="border-color:oklch(var(--border))">Cancel</button>
         </form>
       </div>
-      <div class="overflow-x-auto">
-        <table data-ocid="admin.table" class="w-full">
+      <div class="overflow-x-auto w-full">
+        <table data-ocid="admin.table" class="w-full min-w-[500px]">
           <thead>
             <tr class="border-b" style="border-color:oklch(var(--border));background:oklch(var(--secondary))">
               <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Icon</th>
@@ -1011,7 +1153,7 @@ function renderAddVendorForm(): string {
           <input data-ocid="admin.input" name="principalId" type="text" placeholder="e.g. aaaaa-aa (leave blank to use your ID)" class="w-full px-3 py-2 rounded-lg border text-sm font-mono" style="border-color:oklch(var(--border))" />
         </div>
         <div id="vendor-form-error" class="md:col-span-2 hidden px-3 py-2 rounded-lg text-xs" style="background:oklch(0.95 0.1 27);color:oklch(0.5 0.15 27)"></div>
-        <div class="md:col-span-2 flex gap-3">
+        <div class="md:col-span-2 flex flex-wrap gap-3">
           <button type="submit" data-ocid="admin.submit_button" class="px-5 py-2 text-sm font-bold rounded-lg text-white" style="background:oklch(var(--primary))">Add Vendor</button>
           <button type="button" id="cancel-vendor-btn" data-ocid="admin.cancel_button" class="px-5 py-2 text-sm font-semibold rounded-lg border" style="border-color:oklch(var(--border))">Cancel</button>
         </div>
@@ -1045,8 +1187,8 @@ async function loadVendors(): Promise<void> {
           <p class="font-semibold" style="color:oklch(var(--foreground))">No vendors registered yet</p>
           <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Use the button above to add a vendor directly.</p>
         </div>`
-      : `<div class="overflow-x-auto">
-          <table data-ocid="admin.table" class="w-full">
+      : `<div class="overflow-x-auto w-full">
+          <table data-ocid="admin.table" class="w-full min-w-[600px]">
             <thead>
               <tr class="border-b" style="border-color:oklch(var(--border));background:oklch(var(--secondary))">
                 <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Name</th>
@@ -1078,7 +1220,7 @@ async function loadVendors(): Promise<void> {
 
   content.innerHTML = `
     <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:oklch(var(--border))">
-      <div class="p-5 border-b flex items-center justify-between" style="border-color:oklch(var(--border))">
+      <div class="p-5 border-b flex flex-wrap items-center justify-between gap-3" style="border-color:oklch(var(--border))">
         <h2 class="font-bold" style="color:oklch(var(--foreground))">All Vendors (${vendors.length})</h2>
         <button id="add-vendor-btn" data-ocid="admin.primary_button" class="px-4 py-2 text-xs font-bold rounded-lg text-white" style="background:oklch(var(--primary))">+ Add Vendor</button>
       </div>
@@ -1190,7 +1332,7 @@ function loadBlogAdmin(): void {
 
   content.innerHTML = `
     <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:oklch(var(--border))">
-      <div class="p-5 border-b flex items-center justify-between" style="border-color:oklch(var(--border))">
+      <div class="p-5 border-b flex flex-wrap items-center justify-between gap-3" style="border-color:oklch(var(--border))">
         <div>
           <h2 class="font-bold" style="color:oklch(var(--foreground))">Blog Articles</h2>
           <p class="text-xs mt-0.5" style="color:oklch(var(--muted-foreground))">Admin-published articles appear at the top of the blog</p>
@@ -1225,7 +1367,7 @@ function loadBlogAdmin(): void {
             <label class="block text-xs font-semibold mb-1" style="color:oklch(var(--foreground))">Summary *</label>
             <textarea data-ocid="admin.input" name="summary" required rows="3" placeholder="Brief summary shown on blog listing..." class="w-full px-3 py-2 rounded-lg border text-sm resize-none" style="border-color:oklch(var(--border))"></textarea>
           </div>
-          <div class="md:col-span-2 flex gap-3">
+          <div class="md:col-span-2 flex flex-wrap gap-3">
             <button type="submit" data-ocid="admin.submit_button" class="px-5 py-2 text-sm font-bold rounded-lg text-white" style="background:oklch(var(--primary))">Publish Article</button>
             <button type="button" id="cancel-article-btn" data-ocid="admin.cancel_button" class="px-5 py-2 text-sm font-semibold rounded-lg border" style="border-color:oklch(var(--border))">Cancel</button>
           </div>
@@ -1307,7 +1449,7 @@ function renderBlogAdminList(articles: BlogArticle[]): string {
       ${articles
         .map(
           (a, i) => `
-        <div data-ocid="admin.item.${i + 1}" class="p-5 flex items-start gap-4" style="border-bottom:1px solid oklch(var(--border))">
+        <div data-ocid="admin.item.${i + 1}" class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4" style="border-bottom:1px solid oklch(var(--border))">
           <div class="text-3xl flex-shrink-0">${a.emoji}</div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
