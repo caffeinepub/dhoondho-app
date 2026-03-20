@@ -215,7 +215,7 @@ export async function renderAdminPage(): Promise<void> {
         ${adminWarningBanner}
 
         <!-- Tabs -->
-        <div class="admin-tabs-bar flex flex-nowrap gap-1 bg-white rounded-xl border p-1 mb-6" style="border-color:oklch(var(--border));min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div class="admin-tabs-bar" style="min-width:0">
           <button id="tab-pending" data-ocid="admin.tab" data-tab="pending" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
             Pending Listings
           </button>
@@ -476,11 +476,13 @@ function updateTabStyles(active: AdminTab): void {
   for (const btn of document.querySelectorAll<HTMLElement>("[data-tab]")) {
     const isActive = btn.dataset.tab === active;
     if (isActive) {
-      btn.style.background = "oklch(var(--primary))";
+      btn.style.background = "#1f7a3e";
+      btn.classList.add("active-admin-tab");
       btn.style.color = "white";
     } else {
       btn.style.background = "";
-      btn.style.color = "oklch(var(--muted-foreground))";
+      btn.style.color = "";
+      btn.classList.remove("active-admin-tab");
     }
   }
 }
