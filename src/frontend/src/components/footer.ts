@@ -24,7 +24,7 @@ function buildLocationText(): string {
 export function renderFooter(): void {
   const container = document.getElementById("footer-container");
   if (!container) return;
-  container.innerHTML = "";
+  container.innerHTML = buildPageFooterHTML();
 }
 
 export function renderPageFooter(_container: HTMLElement): string {

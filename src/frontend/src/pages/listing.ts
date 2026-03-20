@@ -1,7 +1,7 @@
 declare const L: any;
 
 import { getBackend } from "../backend-client";
-import { renderPageFooter } from "../components/footer";
+import { initFooterReactivity, renderFooter } from "../components/footer";
 import { SAMPLE_CATEGORIES, SAMPLE_LISTINGS } from "../data/sampleData";
 import type { Listing } from "../data/sampleData";
 import { getStatusBadge } from "../utils/business-hours";
@@ -516,7 +516,6 @@ export async function renderListingPage(id: string): Promise<void> {
           More in ${escapeHtml(listing.city)} &rarr;
         </a>
 
-        ${renderPageFooter(main)}
       </div>
     </div>
 
@@ -536,6 +535,8 @@ export async function renderListingPage(id: string): Promise<void> {
       </button>
     </div>
   `;
+  renderFooter();
+  initFooterReactivity();
 
   setTimeout(() => initDetailMap(listing!), 100);
   attachListingEvents(String(listing!.id));

@@ -264,6 +264,17 @@ button {
   color: white !important;
 }
 
+#admin-tab-content {
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+}
+
+#admin-tab-content > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* Admin card grid: 4 cols desktop, 2 tablet, 1 mobile */
 .admin-cards-grid {
   display: grid;
