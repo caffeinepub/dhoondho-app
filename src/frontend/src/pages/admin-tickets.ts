@@ -1,4 +1,7 @@
-// ─── Support / Ticket System Module ─────────────────────────────────────────
+// ─── Support / Ticket System Module ─────────────────────────────────────────────────
+// Tickets are persisted in localStorage (the Motoko backend has no ticket endpoint).
+// Real tickets arrive when users submit the support form from the app.
+// No demo/seed data — only real submissions are shown.
 
 export interface SupportTicket {
   id: string;
@@ -18,7 +21,11 @@ const TICKETS_KEY = "dhoondho_support_tickets";
 
 export function getTickets(): SupportTicket[] {
   try {
-    return JSON.parse(localStorage.getItem(TICKETS_KEY) || "[]");
+    const raw = JSON.parse(localStorage.getItem(TICKETS_KEY) || "[]");
+    // Filter out any legacy demo tickets (IDs like TKT-001, TKT-002, TKT-003, TKT-004)
+    return Array.isArray(raw)
+      ? raw.filter((t: SupportTicket) => !t.id.match(/^TKT-00[1-9]$/))
+      : [];
   } catch {
     return [];
   }
@@ -31,78 +38,17 @@ export function saveTickets(tickets: SupportTicket[]): void {
 export function submitTicket(
   ticket: Omit<SupportTicket, "id" | "createdAt" | "updatedAt" | "status">,
 ): SupportTicket {
+  const now = new Date().toISOString().split("T")[0];
   const t: SupportTicket = {
     ...ticket,
     id: `TKT-${Date.now()}`,
     status: "open",
-    createdAt: new Date().toISOString().split("T")[0],
-    updatedAt: new Date().toISOString().split("T")[0],
+    createdAt: now,
+    updatedAt: now,
   };
   const all = getTickets();
   saveTickets([t, ...all]);
   return t;
-}
-
-function initDemoTickets(): void {
-  if (getTickets().length > 0) return;
-  const demo: SupportTicket[] = [
-    {
-      id: "TKT-001",
-      subject: "Listing not showing in search",
-      message:
-        "I added my business yesterday but it's not appearing in search results.",
-      userName: "Rahul Sharma",
-      userEmail: "rahul@example.com",
-      status: "open",
-      priority: "high",
-      category: "listing",
-      createdAt: "2026-03-15",
-      updatedAt: "2026-03-15",
-    },
-    {
-      id: "TKT-002",
-      subject: "Cannot login to vendor dashboard",
-      message:
-        "I get a 'Please log in' error when trying to access vendor dashboard.",
-      userName: "Priya Verma",
-      userEmail: "priya@example.com",
-      status: "in-progress",
-      priority: "urgent",
-      category: "vendor",
-      createdAt: "2026-03-17",
-      updatedAt: "2026-03-18",
-      adminReply:
-        "We are investigating the issue. Please try clearing browser cache.",
-    },
-    {
-      id: "TKT-003",
-      subject: "Wrong phone number on my listing",
-      message: "The phone number on my listing is incorrect. Please update it.",
-      userName: "Amit Patel",
-      userEmail: "amit@example.com",
-      status: "resolved",
-      priority: "medium",
-      category: "listing",
-      createdAt: "2026-03-10",
-      updatedAt: "2026-03-12",
-      adminReply:
-        "Your listing has been updated with the correct phone number.",
-    },
-    {
-      id: "TKT-004",
-      subject: "Request to remove fake review",
-      message:
-        "There is a fake 1-star review on my business page. Please investigate.",
-      userName: "Sunita Rao",
-      userEmail: "sunita@example.com",
-      status: "open",
-      priority: "medium",
-      category: "other",
-      createdAt: "2026-03-18",
-      updatedAt: "2026-03-18",
-    },
-  ];
-  saveTickets(demo);
 }
 
 function escH(s: string): string {
@@ -134,7 +80,6 @@ function priorityBadge(p: SupportTicket["priority"]): string {
 }
 
 export function renderTicketsTab(container: HTMLElement): void {
-  initDemoTickets();
   const tickets = getTickets();
   const open = tickets.filter(
     (t) => t.status === "open" || t.status === "in-progress",
@@ -152,24 +97,26 @@ export function renderTicketsTab(container: HTMLElement): void {
 
       <!-- Stats -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        ${[
-          {
-            label: "Total",
-            val: tickets.length,
-            color: "oklch(var(--primary))",
-          },
-          {
-            label: "Open",
-            val: tickets.filter((t) => t.status === "open").length,
-            color: "#b71c1c",
-          },
-          {
-            label: "In Progress",
-            val: tickets.filter((t) => t.status === "in-progress").length,
-            color: "#e65100",
-          },
-          { label: "Resolved", val: resolved, color: "#1a7a3c" },
-        ]
+        ${(
+          [
+            {
+              label: "Total",
+              val: tickets.length,
+              color: "oklch(var(--primary))",
+            },
+            {
+              label: "Open",
+              val: tickets.filter((t) => t.status === "open").length,
+              color: "#b71c1c",
+            },
+            {
+              label: "In Progress",
+              val: tickets.filter((t) => t.status === "in-progress").length,
+              color: "#e65100",
+            },
+            { label: "Resolved", val: resolved, color: "#1a7a3c" },
+          ] as { label: string; val: number; color: string }[]
+        )
           .map(
             (
               s,
@@ -225,7 +172,8 @@ export function renderTicketsTab(container: HTMLElement): void {
       const matchQ =
         !q ||
         t.subject.toLowerCase().includes(q) ||
-        t.userName.toLowerCase().includes(q);
+        t.userName.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q);
       const matchS = !status || t.status === status;
       const matchP = !priority || t.priority === priority;
       return matchQ && matchS && matchP;
@@ -243,7 +191,11 @@ export function renderTicketsTab(container: HTMLElement): void {
 
 function renderTicketCards(tickets: SupportTicket[]): string {
   if (tickets.length === 0) {
-    return `<div class="p-10 text-center text-sm" style="color:oklch(var(--muted-foreground))">No tickets found.</div>`;
+    return `<div class="rounded-xl border p-12 text-center" style="border-color:oklch(var(--border));background:oklch(var(--card))">
+      <div class="text-4xl mb-3">🎫</div>
+      <p class="font-semibold" style="color:oklch(var(--foreground))">No tickets yet</p>
+      <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Support tickets submitted by users will appear here.</p>
+    </div>`;
   }
   return tickets
     .map(
@@ -259,7 +211,7 @@ function renderTicketCards(tickets: SupportTicket[]): string {
       <p class="text-sm mb-3" style="color:oklch(var(--muted-foreground))">${escH(t.message)}</p>
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="text-xs" style="color:oklch(var(--muted-foreground))">
-          <span class="font-semibold">${escH(t.userName)}</span> · ${escH(t.userEmail)} · ${t.createdAt}
+          <span class="font-semibold">${escH(t.userName)}</span>${t.userEmail ? ` · ${escH(t.userEmail)}` : ""} · ${t.createdAt}
         </div>
         <div class="flex gap-2 flex-wrap">
           ${t.status !== "resolved" && t.status !== "closed" ? `<button class="ticket-action text-xs px-3 py-1.5 rounded-lg font-semibold" data-action="reply" data-id="${t.id}" style="background:oklch(var(--primary));color:#fff">Reply</button>` : ""}
@@ -296,6 +248,7 @@ function attachTicketActions(container: HTMLElement): void {
       const tickets = getTickets();
       const idx = tickets.findIndex((t) => t.id === id);
       if (idx === -1) return;
+      const now = new Date().toISOString().split("T")[0];
 
       if (action === "reply") {
         const form = container.querySelector(`#reply-form-${id}`);
@@ -308,37 +261,37 @@ function attachTicketActions(container: HTMLElement): void {
         if (!reply) return;
         tickets[idx].adminReply = reply;
         tickets[idx].status = "in-progress";
-        tickets[idx].updatedAt = new Date().toISOString().split("T")[0];
+        tickets[idx].updatedAt = now;
         saveTickets(tickets);
         showTicketToast("Reply sent!");
-        const list = container.querySelector("#tickets-list");
-        if (list) list.innerHTML = renderTicketCards(getTickets());
-        attachTicketActions(container);
+        rerender(container);
       } else if (action === "in-progress") {
         tickets[idx].status = "in-progress";
+        tickets[idx].updatedAt = now;
         saveTickets(tickets);
         showTicketToast("Ticket marked in progress.");
-        const list = container.querySelector("#tickets-list");
-        if (list) list.innerHTML = renderTicketCards(getTickets());
-        attachTicketActions(container);
+        rerender(container);
       } else if (action === "resolve") {
         tickets[idx].status = "resolved";
-        tickets[idx].updatedAt = new Date().toISOString().split("T")[0];
+        tickets[idx].updatedAt = now;
         saveTickets(tickets);
         showTicketToast("Ticket resolved!");
-        const list = container.querySelector("#tickets-list");
-        if (list) list.innerHTML = renderTicketCards(getTickets());
-        attachTicketActions(container);
+        rerender(container);
       } else if (action === "close") {
         tickets[idx].status = "closed";
+        tickets[idx].updatedAt = now;
         saveTickets(tickets);
         showTicketToast("Ticket closed.");
-        const list = container.querySelector("#tickets-list");
-        if (list) list.innerHTML = renderTicketCards(getTickets());
-        attachTicketActions(container);
+        rerender(container);
       }
     });
   }
+}
+
+function rerender(container: HTMLElement): void {
+  const list = container.querySelector("#tickets-list");
+  if (list) list.innerHTML = renderTicketCards(getTickets());
+  attachTicketActions(container);
 }
 
 function showTicketToast(msg: string): void {

@@ -1,4 +1,10 @@
 // ─── User Management Module ──────────────────────────────────────────────────
+// Uses localStorage as the user registry (backend has no getAllUsers endpoint).
+// When a user logs in, their profile is saved to the registry via saveCallerUserProfile.
+// Role changes are persisted to both localStorage and backend (assignCallerUserRole).
+
+import { getAuthenticatedBackend } from "../backend-client";
+import { showToast } from "../utils/toast";
 
 export interface AppUser {
   id: string;
@@ -26,74 +32,37 @@ export function saveUsersRegistry(users: AppUser[]): void {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
+/** Register or update the currently logged-in user in the local registry. */
+export function upsertUserInRegistry(
+  user: Partial<AppUser> & { principal: string },
+): void {
+  const all = getUsersRegistry();
+  const idx = all.findIndex((u) => u.principal === user.principal);
+  const now = new Date().toISOString().split("T")[0];
+  if (idx === -1) {
+    all.push({
+      id: `u-${Date.now()}`,
+      name: user.name || "Unknown",
+      email: user.email || "",
+      role: user.role || "user",
+      status: "active",
+      joinedAt: now,
+      lastActive: now,
+      listingsCount: 0,
+      ...user,
+    });
+  } else {
+    all[idx] = { ...all[idx], ...user, lastActive: now };
+  }
+  saveUsersRegistry(all);
+}
+
 function escHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-export function initUserManagementDemo(): void {
-  if (getUsersRegistry().length > 0) return;
-  const demo: AppUser[] = [
-    {
-      id: "u1",
-      principal: "2vxsx-fae",
-      name: "Rahul Sharma",
-      email: "rahul@example.com",
-      role: "user",
-      status: "active",
-      joinedAt: "2026-01-10",
-      lastActive: "2026-03-18",
-      listingsCount: 3,
-    },
-    {
-      id: "u2",
-      principal: "rrkah-fqaaa",
-      name: "Priya Verma",
-      email: "priya@example.com",
-      role: "vendor",
-      status: "active",
-      joinedAt: "2026-02-05",
-      lastActive: "2026-03-17",
-      listingsCount: 8,
-    },
-    {
-      id: "u3",
-      principal: "qoctq-giaaa",
-      name: "Amit Patel",
-      email: "amit@example.com",
-      role: "user",
-      status: "banned",
-      joinedAt: "2026-01-20",
-      lastActive: "2026-02-28",
-      listingsCount: 1,
-    },
-    {
-      id: "u4",
-      principal: "aaaaa-bbbbb",
-      name: "Sunita Rao",
-      email: "sunita@example.com",
-      role: "vendor",
-      status: "suspended",
-      joinedAt: "2026-02-14",
-      lastActive: "2026-03-10",
-      listingsCount: 5,
-    },
-    {
-      id: "u5",
-      principal: "ccccc-ddddd",
-      name: "Vikram Singh",
-      email: "vikram@example.com",
-      role: "admin",
-      status: "active",
-      joinedAt: "2025-12-01",
-      lastActive: "2026-03-19",
-      listingsCount: 12,
-    },
-  ];
-  saveUsersRegistry(demo);
 }
 
 function statusBadge(status: AppUser["status"]): string {
@@ -115,7 +84,6 @@ function roleBadge(role: AppUser["role"]): string {
 }
 
 export function renderUserManagementTab(container: HTMLElement): void {
-  initUserManagementDemo();
   const users = getUsersRegistry();
 
   container.innerHTML = `
@@ -124,7 +92,7 @@ export function renderUserManagementTab(container: HTMLElement): void {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-bold" style="color:oklch(var(--foreground))">User Management</h2>
-          <p class="text-sm" style="color:oklch(var(--muted-foreground))">${users.length} registered users</p>
+          <p class="text-sm" style="color:oklch(var(--muted-foreground))">${users.length} registered user${users.length !== 1 ? "s" : ""} (users are registered as they log in)</p>
         </div>
         <button id="export-users-btn" class="px-4 py-2 text-sm font-semibold rounded-lg border flex items-center gap-2" style="border-color:oklch(var(--border))">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -134,7 +102,7 @@ export function renderUserManagementTab(container: HTMLElement): void {
 
       <!-- Filters -->
       <div class="flex flex-wrap gap-3">
-        <input id="user-search" type="text" placeholder="Search by name or email..." class="flex-1 min-w-[180px] px-3 py-2 rounded-lg border text-sm" style="border-color:oklch(var(--border))">
+        <input id="user-search" type="text" placeholder="Search by name, email or principal..." class="flex-1 min-w-[180px] px-3 py-2 rounded-lg border text-sm" style="border-color:oklch(var(--border))">
         <select id="user-role-filter" class="px-3 py-2 rounded-lg border text-sm" style="border-color:oklch(var(--border))">
           <option value="">All Roles</option>
           <option value="admin">Admin</option>
@@ -169,6 +137,16 @@ export function renderUserManagementTab(container: HTMLElement): void {
         </div>
       </div>
 
+      ${
+        users.length === 0
+          ? `
+        <div class="rounded-xl border p-12 text-center" style="border-color:oklch(var(--border));background:oklch(var(--card))">
+          <div class="text-4xl mb-3">👥</div>
+          <p class="font-semibold" style="color:oklch(var(--foreground))">No users registered yet</p>
+          <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Users will appear here as they log in with Internet Identity.</p>
+        </div>
+      `
+          : `
       <!-- User Table -->
       <div class="rounded-xl border" style="border-color:oklch(var(--border))">
         <div style="overflow-x:auto">
@@ -179,7 +157,6 @@ export function renderUserManagementTab(container: HTMLElement): void {
                 <th class="text-left px-4 py-3 text-xs font-semibold" style="color:oklch(var(--muted-foreground))">Role</th>
                 <th class="text-left px-4 py-3 text-xs font-semibold" style="color:oklch(var(--muted-foreground))">Status</th>
                 <th class="text-left px-4 py-3 text-xs font-semibold" style="color:oklch(var(--muted-foreground))">Joined</th>
-                <th class="text-left px-4 py-3 text-xs font-semibold" style="color:oklch(var(--muted-foreground))">Listings</th>
                 <th class="text-left px-4 py-3 text-xs font-semibold" style="color:oklch(var(--muted-foreground))">Actions</th>
               </tr>
             </thead>
@@ -189,6 +166,8 @@ export function renderUserManagementTab(container: HTMLElement): void {
           </table>
         </div>
       </div>
+      `
+      }
     </div>
   `;
 
@@ -209,7 +188,8 @@ export function renderUserManagementTab(container: HTMLElement): void {
       const matchQ =
         !q ||
         u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q);
+        u.email.toLowerCase().includes(q) ||
+        u.principal.toLowerCase().includes(q);
       const matchRole = !role || u.role === role;
       const matchStatus = !status || u.status === status;
       return matchQ && matchRole && matchStatus;
@@ -228,10 +208,10 @@ export function renderUserManagementTab(container: HTMLElement): void {
     ?.addEventListener("click", () => {
       const all = getUsersRegistry();
       const csv = [
-        "Name,Email,Role,Status,Joined,Listings",
+        "Name,Email,Role,Status,Joined,Principal",
         ...all.map(
           (u) =>
-            `"${u.name}","${u.email}",${u.role},${u.status},${u.joinedAt},${u.listingsCount}`,
+            `"${u.name}","${u.email}",${u.role},${u.status},${u.joinedAt},"${u.principal}"`,
         ),
       ].join("\n");
       const a = document.createElement("a");
@@ -245,7 +225,7 @@ export function renderUserManagementTab(container: HTMLElement): void {
 
 function renderUsersRows(users: AppUser[]): string {
   if (users.length === 0) {
-    return `<tr><td colspan="6" class="px-4 py-10 text-center text-sm" style="color:oklch(var(--muted-foreground))">No users found.</td></tr>`;
+    return `<tr><td colspan="5" class="px-4 py-10 text-center text-sm" style="color:oklch(var(--muted-foreground))">No users found.</td></tr>`;
   }
   return users
     .map(
@@ -253,22 +233,29 @@ function renderUsersRows(users: AppUser[]): string {
     <tr data-user-id="${u.id}" style="border-bottom:1px solid oklch(var(--border))">
       <td class="px-4 py-3">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style="background:oklch(var(--primary))">${escHtml(u.name[0] || "?")}</div>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style="background:oklch(var(--primary))">${escHtml((u.name[0] || "?").toUpperCase())}</div>
           <div>
             <div class="text-sm font-semibold" style="color:oklch(var(--foreground))">${escHtml(u.name)}</div>
-            <div class="text-xs" style="color:oklch(var(--muted-foreground))">${escHtml(u.email)}</div>
+            <div class="text-xs font-mono truncate max-w-[180px]" style="color:oklch(var(--muted-foreground))">${escHtml(u.principal)}</div>
           </div>
         </div>
       </td>
       <td class="px-4 py-3">${roleBadge(u.role)}</td>
       <td class="px-4 py-3">${statusBadge(u.status)}</td>
       <td class="px-4 py-3 text-sm" style="color:oklch(var(--muted-foreground))">${u.joinedAt}</td>
-      <td class="px-4 py-3 text-sm font-semibold" style="color:oklch(var(--foreground))">${u.listingsCount}</td>
       <td class="px-4 py-3">
         <div class="flex flex-wrap gap-2">
-          ${u.status !== "banned" ? `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="ban" data-id="${u.id}" style="background:#fdecea;color:#b71c1c">Ban</button>` : `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="unban" data-id="${u.id}" style="background:#e8f5e9;color:#1a7a3c">Unban</button>`}
-          ${u.role !== "vendor" ? `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="make-vendor" data-id="${u.id}" style="background:#f3e5f5;color:#6a1b9a">Make Vendor</button>` : ""}
-          <button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="view-log" data-id="${u.id}" style="background:#e3f2fd;color:#0d47a1">Activity</button>
+          ${
+            u.status !== "banned"
+              ? `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="ban" data-id="${u.id}" style="background:#fdecea;color:#b71c1c">Ban</button>`
+              : `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="unban" data-id="${u.id}" style="background:#e8f5e9;color:#1a7a3c">Unban</button>`
+          }
+          ${
+            u.role !== "vendor"
+              ? `<button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="make-vendor" data-id="${u.id}" style="background:#f3e5f5;color:#6a1b9a">Make Vendor</button>`
+              : ""
+          }
+          <button class="user-action-btn text-xs px-3 py-1 rounded-lg font-semibold" data-action="delete" data-id="${u.id}" style="background:#fdecea;color:#b71c1c">Delete</button>
         </div>
       </td>
     </tr>
@@ -281,45 +268,63 @@ function attachUserActions(container: HTMLElement): void {
   for (const btn of Array.from(
     container.querySelectorAll<HTMLElement>(".user-action-btn"),
   )) {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       const el = e.currentTarget as HTMLElement;
       const action = el.dataset.action;
       const id = el.dataset.id;
       const users = getUsersRegistry();
       const idx = users.findIndex((u) => u.id === id);
       if (idx === -1) return;
+
+      el.setAttribute("disabled", "true");
+
       if (action === "ban") {
         users[idx].status = "banned";
         saveUsersRegistry(users);
-        showUserToast("User banned.");
+        showToast("User banned.", "info");
       } else if (action === "unban") {
         users[idx].status = "active";
         saveUsersRegistry(users);
-        showUserToast("User unbanned.");
+        showToast("User unbanned.", "success");
       } else if (action === "make-vendor") {
         users[idx].role = "vendor";
         saveUsersRegistry(users);
-        showUserToast("Role updated to vendor.");
-      } else if (action === "view-log") {
-        const u = users[idx];
-        alert(
-          `Activity Log – ${u.name}\n\nLast Active: ${u.lastActive}\nListings: ${u.listingsCount}\nJoined: ${u.joinedAt}\nPrincipal: ${u.principal}`,
-        );
-        return;
+        // Also try to update role on backend via assignCallerUserRole
+        try {
+          const { Principal } = await import("@icp-sdk/core/principal");
+          const backend = await getAuthenticatedBackend();
+          const { UserRole } = await import("../backend");
+          await backend.assignCallerUserRole(
+            Principal.fromText(users[idx].principal) as Parameters<
+              typeof backend.assignCallerUserRole
+            >[0],
+            UserRole.user, // backend has no vendor role; set as user
+          );
+          showToast("Role updated to vendor.", "success");
+        } catch {
+          // backend role assignment may fail if caller is not the target user; local update still applied
+          showToast(
+            "Role updated locally. Backend sync may require the user to log in again.",
+            "info",
+          );
+        }
+      } else if (action === "delete") {
+        if (
+          !confirm(`Delete user "${users[idx].name}"? This cannot be undone.`)
+        ) {
+          el.removeAttribute("disabled");
+          return;
+        }
+        users.splice(idx, 1);
+        saveUsersRegistry(users);
+        showToast("User deleted.", "info");
       }
+
+      el.removeAttribute("disabled");
+
       const tbody = container.querySelector("#users-table-body");
       if (tbody) tbody.innerHTML = renderUsersRows(getUsersRegistry());
       attachUserActions(container);
     });
   }
-}
-
-function showUserToast(msg: string): void {
-  const t = document.createElement("div");
-  t.className =
-    "fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl text-white text-sm font-semibold shadow-lg";
-  t.style.background = "oklch(var(--primary))";
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
 }

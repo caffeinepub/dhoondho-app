@@ -337,7 +337,7 @@ export async function renderAdminPage(): Promise<void> {
       claimBtn.textContent = "Claiming...";
       if (claimStatus) claimStatus.textContent = "";
       try {
-        const backend = await getBackend();
+        const backend = await getAuthenticatedBackend();
         const claimed = await backend.claimFirstAdminRole();
         if (claimed) {
           document.getElementById("claim-admin-banner")?.remove();
@@ -982,7 +982,7 @@ async function loadPendingListings(): Promise<void> {
       btn.disabled = true;
       btn.textContent = action === "approve" ? "Approving..." : "Rejecting...";
       try {
-        const backend = await getBackend();
+        const backend = await getAuthenticatedBackend();
         const { ListingStatus } = await import("../backend");
         await backend.changeListingStatus(
           id,
@@ -1090,7 +1090,7 @@ async function loadCategories(): Promise<void> {
       const data = new FormData(form);
       const newId = BigInt(Date.now());
       try {
-        const backend = await getBackend();
+        const backend = await getAuthenticatedBackend();
         await backend.addCategory({
           id: newId,
           icon: (data.get("icon") as string) || "🏢",
@@ -1115,7 +1115,7 @@ async function loadCategories(): Promise<void> {
       if (!confirm("Delete this category?")) return;
       const id = BigInt(btn.dataset.deleteCat || "0");
       try {
-        const backend = await getBackend();
+        const backend = await getAuthenticatedBackend();
         await backend.deleteCategory(id);
         showToast("Category deleted.", "info");
         loadCategories();
@@ -1165,9 +1165,38 @@ function renderAddVendorForm(): string {
 }
 
 // ─── Vendors Tab ─────────────────────────────────────────────────────────────
+// Helper to get/set vendor disabled status (backend has no status field on Vendor type)
+function getVendorStatus(principal: string): "active" | "disabled" {
+  try {
+    const map: Record<string, string> = JSON.parse(
+      localStorage.getItem("dhoondho_vendor_status") || "{}",
+    );
+    return (map[principal] as "active" | "disabled") || "active";
+  } catch {
+    return "active";
+  }
+}
+function setVendorStatus(
+  principal: string,
+  status: "active" | "disabled",
+): void {
+  try {
+    const map: Record<string, string> = JSON.parse(
+      localStorage.getItem("dhoondho_vendor_status") || "{}",
+    );
+    map[principal] = status;
+    localStorage.setItem("dhoondho_vendor_status", JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 async function loadVendors(): Promise<void> {
   const content = document.getElementById("admin-tab-content");
   if (!content) return;
+
+  // Show loading state
+  content.innerHTML = `<div class="p-10 text-center"><div class="inline-block w-6 h-6 border-4 rounded-full animate-spin" style="border-color:oklch(var(--primary));border-top-color:transparent"></div><p class="text-sm mt-3" style="color:oklch(var(--muted-foreground))">Loading vendors from backend...</p></div>`;
 
   let vendors: Array<{
     principal: { toString(): string };
@@ -1175,19 +1204,19 @@ async function loadVendors(): Promise<void> {
     businessName: string;
     phone: string;
   }> = [];
+  let loadError = "";
   try {
     const backend = await getBackend();
     vendors = await backend.getAllVendors();
-  } catch {
-    /* empty */
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Failed to load vendors";
   }
 
   const vendorRows =
     vendors.length === 0
       ? `<div data-ocid="admin.empty_state" class="p-12 text-center">
           <div class="text-4xl mb-3">👤</div>
-          <p class="font-semibold" style="color:oklch(var(--foreground))">No vendors registered yet</p>
-          <p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Use the button above to add a vendor directly.</p>
+          ${loadError ? `<p class="text-sm font-semibold" style="color:#b71c1c">Load error: ${escapeHtml(loadError)}</p>` : `<p class="font-semibold" style="color:oklch(var(--foreground))">No vendors registered yet</p><p class="text-sm mt-1" style="color:oklch(var(--muted-foreground))">Use the button above to add a vendor directly.</p>`}
         </div>`
       : `<div class="overflow-x-auto w-full">
           <table data-ocid="admin.table" class="w-full min-w-[600px]">
@@ -1196,25 +1225,35 @@ async function loadVendors(): Promise<void> {
                 <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Name</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Business</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Phone</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Principal</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Status</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide" style="color:oklch(var(--muted-foreground))">Actions</th>
               </tr>
             </thead>
             <tbody>
               ${vendors
-                .map(
-                  (v, i) => `
+                .map((v, i) => {
+                  const ps = v.principal.toString();
+                  const vstatus = getVendorStatus(ps);
+                  return `
                 <tr data-ocid="admin.item.${i + 1}" class="border-b" style="border-color:oklch(var(--border))">
                   <td class="py-3 px-4 text-sm font-medium" style="color:oklch(var(--foreground))">${escapeHtml(v.name)}</td>
                   <td class="py-3 px-4 text-sm" style="color:oklch(var(--muted-foreground))">${escapeHtml(v.businessName)}</td>
                   <td class="py-3 px-4 text-sm" style="color:oklch(var(--muted-foreground))">${escapeHtml(v.phone)}</td>
-                  <td class="py-3 px-4 text-xs font-mono truncate max-w-xs" style="color:oklch(var(--muted-foreground))">${escapeHtml(v.principal.toString())}</td>
                   <td class="py-3 px-4">
-                    <button data-delete-vendor="${escapeHtml(v.principal.toString())}" data-ocid="admin.delete_button" class="text-xs font-semibold" style="color:oklch(var(--destructive))">Remove</button>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="${vstatus === "active" ? "background:#e8f5e9;color:#1a7a3c" : "background:#fdecea;color:#b71c1c"}">${vstatus}</span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="flex flex-wrap gap-2">
+                      ${
+                        vstatus === "active"
+                          ? `<button data-disable-vendor="${escapeHtml(ps)}" data-ocid="admin.toggle" class="text-xs font-semibold px-3 py-1 rounded-lg" style="background:#fff3e0;color:#e65100">Disable</button>`
+                          : `<button data-enable-vendor="${escapeHtml(ps)}" data-ocid="admin.toggle" class="text-xs font-semibold px-3 py-1 rounded-lg" style="background:#e8f5e9;color:#1a7a3c">Enable</button>`
+                      }
+                    </div>
                   </td>
                 </tr>
-              `,
-                )
+              `;
+                })
                 .join("")}
             </tbody>
           </table>
@@ -1313,14 +1352,26 @@ async function loadVendors(): Promise<void> {
       }
     });
 
-  // Remove vendor buttons
+  // Enable/Disable vendor buttons
   for (const btn of content.querySelectorAll<HTMLElement>(
-    "[data-delete-vendor]",
+    "[data-disable-vendor]",
   )) {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Remove this vendor?")) return;
-      // No backend removeVendor method -- show a note to the user
-      showToast("Vendor removal is not yet supported in the backend.", "info");
+    btn.addEventListener("click", () => {
+      const principal = (btn as HTMLElement).dataset.disableVendor || "";
+      if (!confirm("Disable this vendor?")) return;
+      setVendorStatus(principal, "disabled");
+      showToast("Vendor disabled.", "info");
+      loadVendors();
+    });
+  }
+  for (const btn of content.querySelectorAll<HTMLElement>(
+    "[data-enable-vendor]",
+  )) {
+    btn.addEventListener("click", () => {
+      const principal = (btn as HTMLElement).dataset.enableVendor || "";
+      setVendorStatus(principal, "active");
+      showToast("Vendor enabled.", "success");
+      loadVendors();
     });
   }
 }
