@@ -1,6 +1,6 @@
 import { isAuthenticated, login, logout } from "../auth";
 import { getBackend } from "../backend-client";
-import { initFooterReactivity, renderPageFooter } from "../components/footer";
+import { initFooterReactivity } from "../components/footer";
 import { SAMPLE_CATEGORIES } from "../data/sampleData";
 import { getCurrentLanguage, onLanguageChange, setLanguage, t } from "../i18n";
 import { initAIAssistant } from "../utils/ai-assistant";
@@ -401,7 +401,6 @@ export async function renderHomePage(): Promise<void> {
 
       </div>
 
-    ${renderPageFooter(main)}
 
     </div>
   `;

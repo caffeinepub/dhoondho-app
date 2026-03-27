@@ -756,7 +756,7 @@ async function loadPendingListings(): Promise<void> {
 
   let listings: Listing[] = [];
   try {
-    const backend = await getBackend();
+    const backend = await getAuthenticatedBackend();
     const raw = await backend.getPendingListings();
     listings = raw.map((l) => ({
       id: l.id,
